@@ -10,8 +10,8 @@ datasource db {
 model blogcategories {
   id        Int      @id @default(autoincrement())
   name      String   @unique(map: "name") @db.VarChar(255)
-  createdAt DateTime @db.DateTime(0)
-  updatedAt DateTime @db.DateTime(0)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
   blogs     blogs[]
 }
 
@@ -21,8 +21,8 @@ model blogcontacts {
   last_name  String   @db.VarChar(255)
   email      String   @db.VarChar(255)
   content    String   @db.MediumText
-  createdAt  DateTime @db.DateTime(0)
-  updatedAt  DateTime @db.DateTime(0)
+  createdAt  DateTime? @db.DateTime(0) @default(now())
+  updatedAt  DateTime? @db.DateTime(0) @default(now())
   BlogId     Int
   blogs      blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "blogcontacts_ibfk_1")
 
@@ -30,8 +30,8 @@ model blogcontacts {
 }
 
 model blogpostcategories {
-  createdAt  DateTime   @db.DateTime(0)
-  updatedAt  DateTime   @db.DateTime(0)
+  createdAt  DateTime?   @db.DateTime(0) @default(now())
+  updatedAt  DateTime?   @db.DateTime(0) @default(now())
   CategoryId Int
   BlogId     Int
   blogs      blogs      @relation(fields: [BlogId], references: [id], onDelete: Cascade, map: "blogpostcategories_ibfk_2")
@@ -46,8 +46,8 @@ model blogs {
   name               String               @db.VarChar(255)
   description        String               @db.LongText
   logo_url           String               @db.VarChar(255)
-  createdAt          DateTime             @db.DateTime(0)
-  updatedAt          DateTime             @db.DateTime(0)
+  createdAt          DateTime?             @db.DateTime(0) @default(now())
+  updatedAt          DateTime?             @db.DateTime(0) @default(now())
   UserId             Int
   BlogCategoryId     Int
   blogcategories     blogcategories       @relation(fields: [BlogCategoryId], references: [id], onDelete: NoAction, map: "blogs_ibfk_2")
@@ -67,8 +67,8 @@ model blogs {
 model categories {
   id                 Int                  @id @default(autoincrement())
   name               String               @unique(map: "name") @db.VarChar(255)
-  createdAt          DateTime             @db.DateTime(0)
-  updatedAt          DateTime             @db.DateTime(0)
+  createdAt          DateTime?             @db.DateTime(0) @default(now())
+  updatedAt          DateTime?             @db.DateTime(0) @default(now())
   blogpostcategories blogpostcategories[]
   postcategories     postcategories[]
 }
@@ -77,8 +77,8 @@ model pages {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(255)
   slug      String   @db.VarChar(255)
-  createdAt DateTime @db.DateTime(0)
-  updatedAt DateTime @db.DateTime(0)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
   BlogId    Int
   UserId    Int
   blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "pages_ibfk_1")
@@ -89,8 +89,8 @@ model pages {
 }
 
 model postcategories {
-  createdAt  DateTime   @db.DateTime(0)
-  updatedAt  DateTime   @db.DateTime(0)
+  createdAt  DateTime?   @db.DateTime(0) @default(now())
+  updatedAt  DateTime?   @db.DateTime(0) @default(now())
   CategoryId Int
   PostId     Int
   categories categories @relation(fields: [CategoryId], references: [id], onDelete: Cascade, map: "postcategories_ibfk_1")
@@ -103,8 +103,8 @@ model postcategories {
 model postcomments {
   id        Int      @id @default(autoincrement())
   content   String   @db.MediumText
-  createdAt DateTime @db.DateTime(0)
-  updatedAt DateTime @db.DateTime(0)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
   PostId    Int?
   UserId    Int
   posts     posts?   @relation(fields: [PostId], references: [id], map: "postcomments_ibfk_1")
@@ -116,8 +116,8 @@ model postcomments {
 
 model postlikes {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime @db.DateTime(0)
-  updatedAt DateTime @db.DateTime(0)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
   PostId    Int?
   UserId    Int
   posts     posts?   @relation(fields: [PostId], references: [id], map: "postlikes_ibfk_1")
@@ -133,8 +133,8 @@ model posts {
   slug           String           @db.VarChar(255)
   html_content   String           @db.LongText
   status         posts_status     @default(DRAFT)
-  createdAt      DateTime         @db.DateTime(0)
-  updatedAt      DateTime         @db.DateTime(0)
+  createdAt      DateTime?         @db.DateTime(0) @default(now())
+  updatedAt      DateTime?         @db.DateTime(0) @default(now())
   BlogId         Int
   UserId         Int
   blogs          blogs            @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "posts_ibfk_1")
@@ -150,8 +150,8 @@ model posts {
 model referrals {
   id        Int             @id @default(autoincrement())
   type      referrals_type?
-  createdAt DateTime        @db.DateTime(0)
-  updatedAt DateTime        @db.DateTime(0)
+  createdAt DateTime?        @db.DateTime(0) @default(now())
+  updatedAt DateTime?        @db.DateTime(0) @default(now())
   BlogId    Int?
   UserId    Int
   blogs     blogs?          @relation(fields: [BlogId], references: [id], map: "referrals_ibfk_1")
@@ -163,8 +163,8 @@ model referrals {
 
 model secretkeys {
   id        String   @id @db.Char(36)
-  createdAt DateTime @db.DateTime(0)
-  updatedAt DateTime @db.DateTime(0)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
   BlogId    Int
   blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "secretkeys_ibfk_1")
 
@@ -173,8 +173,8 @@ model secretkeys {
 
 model teammembers {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime @db.DateTime(0)
-  updatedAt DateTime @db.DateTime(0)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
   UserId    Int
   BlogId    Int
   blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "teammembers_ibfk_2")
@@ -191,8 +191,8 @@ model users {
   first_name   String         @db.VarChar(255)
   last_name    String         @db.VarChar(255)
   isGuest      Boolean
-  createdAt    DateTime       @db.DateTime(0)
-  updatedAt    DateTime       @db.DateTime(0)
+  createdAt    DateTime?       @db.DateTime(0) @default(now())
+  updatedAt    DateTime?       @db.DateTime(0) @default(now())
   blogs        blogs[]
   pages        pages[]
   postcomments postcomments[]
