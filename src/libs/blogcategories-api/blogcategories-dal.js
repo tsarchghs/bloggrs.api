@@ -3,12 +3,9 @@ const prisma = require("../../prisma")
 
 module.exports = {
     findByPkOr404: pk => prisma.blogcategories.findByPkOr404(pk),
-    findAll: async ({ page = 1, pageSize = 10 }) => {
+    findAll: async ({ query, page = 1, pageSize = 10 }) => {
         const where = {}
-        // if (query) where[Sequelize.Op.or] = [
-        //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
-        //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
-        // ]
+        if (query) where.name = { contains: query }
         return await prisma.blogcategories.findMany({
             where,
             skip: (page - 1) & page,

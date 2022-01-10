@@ -30,8 +30,8 @@ model blogcontacts {
 }
 
 model blogpostcategories {
-  createdAt  DateTime?   @db.DateTime(0) @default(now())
-  updatedAt  DateTime?   @db.DateTime(0) @default(now())
+  createdAt  DateTime?     @db.DateTime(0) @default(now())
+  updatedAt  DateTime?     @db.DateTime(0) @default(now())
   CategoryId Int
   BlogId     Int
   blogs      blogs      @relation(fields: [BlogId], references: [id], onDelete: Cascade, map: "blogpostcategories_ibfk_2")

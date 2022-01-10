@@ -116,14 +116,14 @@ app.get(
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
-          page: yup.number().integer().positive().default(1),
-          pageSize: yup.number().integer().positive().default(10),
+          page: param_id,
+          pageSize: param_id,
         }),
       })
     ),
   ],
   async (req, res) => {
-    const posts = await findPostsForBlog(req.params.blog_id);
+    const posts = await findPostsForBlog(req.params.blog_id, req.query);
     return res.json({
       code: 200,
       message: "success",
@@ -207,7 +207,10 @@ app.get(
 
 const createBlogFields = {};
 BlogFieldKeys.map(
-  (key) => (createBlogFields[key] = BlogFields[key].required())
+  (key) => {
+    if (key === 'description') return createBlogFields[key]
+    return (createBlogFields[key] = BlogFields[key].required())
+  }
 );
 app.post(
   "/blogs",

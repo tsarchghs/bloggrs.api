@@ -33,5 +33,5 @@ module.exports = {
         await posts.save();
         return post;
     },
-    deletePost: async (pk) => await (await (await prisma.posts.findByPkOr404(pk))).destroy()
+    deletePost: async (pk) => await prisma.posts.delete({ where: { id: Number(pk) } })
 }

@@ -4,26 +4,28 @@ const {
 } = require("../blogpostcategories-dal");
 
 module.exports = {
-  findByPkOr404: (pk) => Blog.findByPkOr404(pk),
+  findByPkOr404: (pk) => prisma.blogs.findUnique({ where: { id: Number(pk) }}),
   findAll: async ({ page = 1, pageSize = 10 }) => {
     const where = {};
     // if (query) where[Sequelize.Op.or] = [
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
-    return await prisma.blogs.findAll({
+    return await prisma.blogs.findMany({
       where,
-      offset: (page - 1) & page,
-      limit: pageSize,
+      skip: (page - 1) & page,
+      take: pageSize,
     });
   },
   createBlog: async ({ name, description, logo_url, UserId, BlogCategoryId }) =>
     await prisma.blogs.create({
-      name,
-      description,
-      logo_url,
-      UserId,
-      BlogCategoryId,
+      data: {
+        name,
+        description,
+        logo_url,
+        UserId,
+        BlogCategoryId,  
+      }
     }),
   updateBlog: async ({ pk, data }) => {
     let keys = Object.keys(data);
