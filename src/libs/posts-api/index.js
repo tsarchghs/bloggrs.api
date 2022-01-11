@@ -17,6 +17,7 @@ const PostFields = {
     title: yup.string(),
     slug: yup.string(),
     html_content: yup.string(),
+    BlogId: id
     // status: yup.string().default("")
 }
 const PostFieldKeys = Object.keys(PostFields)
@@ -32,11 +33,12 @@ app.get("/posts", [
         })
     }))
 ], async (req,res) => {
+    let { page, pageSize } = req.query;
     let posts = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { posts }
+        data: { page, pageSize, posts }
     })
 })
 
@@ -67,7 +69,6 @@ app.post("/posts",[
     let post = await createPost({
         ...req.body,
         UserId: req.user.id,
-        BlogId: 1
     });
     return res.json({
         code: 200,

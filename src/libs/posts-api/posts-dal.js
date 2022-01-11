@@ -9,16 +9,16 @@ module.exports = {
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
         // ]
-        return await prisma.posts.findAll({
+        return await prisma.posts.findMany({
             where,
-            offset: (page - 1) & page,
-            limit: pageSize,
+            skip: (page - 1) & page,
+            take: pageSize,
         })
     },
     createPost: async ({ 
         title, slug, html_content, status,
         BlogId, UserId
-     }) => await prisma.posts.create({ 
+     }) => await prisma.posts.create({
          data: {
             title, slug, html_content, status,
             BlogId, UserId
