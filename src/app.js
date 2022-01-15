@@ -7,6 +7,7 @@ require("express-async-errors");
 // models.sequelize.sync({ force: false });
 
 const http = require("http");
+const cors = require("cors");
 const express = require("express");
 const compression = require("compression");
 const bodyParser = require("body-parser");
@@ -39,6 +40,7 @@ const blogpostcategories_api = require("./libs/blogpostcategories-api");
 const app = express();
 const server = http.createServer(app);
 
+app.use(cors())
 app.use(compression());
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(bodyParser.json({ limit: "50mb" }));

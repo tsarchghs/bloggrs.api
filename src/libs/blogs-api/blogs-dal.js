@@ -46,16 +46,13 @@ module.exports = {
   },
   getBlogCategories: async (BlogId) => {
     const blogpostcategories = await findAllBlogPostCategories({ BlogId });
-    let categories = blogpostcategories.map((bpc) => bpc.Category);
+    let categories = blogpostcategories.map((bpc) => bpc.categories);
+    console.log(categories,'categories')
     categories = categories.map(async (ctg) => {
       ctg = JSON.parse(JSON.stringify(ctg));
       ctg.meta = {};
       ctg.meta.posts_count = await prisma.postcategories.count({
         where: { CategoryId: ctg.id },
-        include: {
-          model: Post,
-          where: { BlogId },
-        },
       });
       return ctg;
     });
