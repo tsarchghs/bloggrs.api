@@ -10,8 +10,8 @@ module.exports = {
     // ]
     return await prisma.blogpostcategories.findMany({
       where,
-      offset: (page - 1) & page,
-      limit: pageSize,
+      skip: (page - 1) & page,
+      take: pageSize,
     });
   },
   createBlogPostCategory: async ({ BlogId, CategoryId }) =>

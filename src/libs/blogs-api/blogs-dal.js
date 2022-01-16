@@ -6,6 +6,8 @@ const {
 module.exports = {
   findByPkOr404: (pk) => prisma.blogs.findUnique({ where: { id: Number(pk) }}),
   findAll: async ({ page = 1, pageSize = 10 }) => {
+    page = Number(page)
+    pageSize = Number(pageSize)
     const where = {};
     // if (query) where[Sequelize.Op.or] = [
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
@@ -23,8 +25,8 @@ module.exports = {
         name,
         description,
         logo_url,
-        UserId,
-        BlogCategoryId,  
+        UserId, 
+        BlogCategoryId,
       }
     }),
   updateBlog: async ({ pk, data }) => {
@@ -44,8 +46,10 @@ module.exports = {
     });
     return secretKey.id;
   },
-  getBlogCategories: async (BlogId) => {
-    const blogpostcategories = await findAllBlogPostCategories({ BlogId });
+  getBlogCategories: async (BlogId, { page = 1, pageSize = 10 }) => {
+    page = Number(page)
+    pageSize = Number(pageSize)
+    const blogpostcategories = await findAllBlogPostCategories({ BlogId, page, pageSize });
     let categories = blogpostcategories.map((bpc) => bpc.categories);
     console.log(categories,'categories')
     categories = categories.map(async (ctg) => {
@@ -58,10 +62,15 @@ module.exports = {
     });
     return Promise.all(categories);
   },
-  getBlogPages: async (BlogId) => {
-      const pages = await prisma.pages.findAll({
-          where: { BlogId }
-      })
-      return pages;
+  getBlogPages: async (BlogId, { page = 1, pageSize = 10 }) => {
+    BlogId = Number(BlogId)
+    page = Number(BlogId)
+    pageSize = Number(pageSize)
+    const pages = await prisma.pages.findMany({
+      where: { BlogId },
+      skip: (page - 1) & page,
+      take: pageSize,
+    })
+    return pages;
   }
 };
