@@ -58,6 +58,7 @@ model blogs {
   posts              posts[]
   referrals          referrals[]
   secretkeys         secretkeys[]
+  publickeys         publickeys[]
   teammembers        teammembers[]
 
   @@index([BlogCategoryId], map: "BlogCategoryId")
@@ -167,6 +168,16 @@ model secretkeys {
   updatedAt DateTime? @db.DateTime(0) @default(now())
   BlogId    Int
   blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "secretkeys_ibfk_1")
+
+  @@index([BlogId], map: "BlogId")
+}
+
+model publickeys {
+  id        String   @id @db.Char(36)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
+  BlogId    Int
+  blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "publickeys_ibfk_1")
 
   @@index([BlogId], map: "BlogId")
 }

@@ -1,3 +1,4 @@
+const { randomUUID } = require("crypto");
 const prisma = require("../../prisma");
 const {
   findAll: findAllBlogPostCategories,
@@ -40,9 +41,15 @@ module.exports = {
     await (await await prisma.blogs.findByPkOr404(pk)).destroy(),
   generateSecret: async (BlogId) => {
     const secretKey = await prisma.secretkeys.create({
-      BlogId,
+      data: { id: randomUUID() ,BlogId: Number(BlogId) },
     });
     return secretKey.id;
+  },
+  generatePublicKey: async (BlogId) => {
+    const publickey = await prisma.publickeys.create({
+      data: { id: randomUUID() ,BlogId: Number(BlogId) },
+    });
+    return publickey.id;
   },
   getBlogCategories: async (BlogId) => {
     const blogpostcategories = await findAllBlogPostCategories({ BlogId });

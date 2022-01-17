@@ -20,6 +20,7 @@ const {
   generateSecret,
   getBlogCategories,
   getBlogPages,
+  generatePublicKey,
 } = require("./blogs-dal");
 const { ErrorHandler } = require("../../utils/error");
 
@@ -28,6 +29,7 @@ const { param_id, id } = require("../utils/validations");
 const validateCredentials = require("./validateCredentials");
 const createBlogToken = require("../utils/createBlogToken");
 const { findPostsForBlog, findPost } = require("../posts-dal");
+const publickeysDal = require("../publickeys-api/publickeys-dal");
 
 app.use(allowCrossDomain);
 
@@ -69,6 +71,47 @@ app.post(
     });
   }
 );
+
+app.post(
+  "/blogs/:blog_id/generate_public_key",
+  [
+    jwtRequired,
+    validateRequest(
+      yup.object().shape({
+        params: yup.object().shape({
+          blog_id: param_id.required(),
+        }),
+      })
+    ),
+  ],
+  async (req, res) => {
+    let key = await generatePublicKey(req.params.blog_id);
+    return res.json({
+      code: 200,
+      message: "success",
+      data: { key },
+    });
+  }
+);
+
+app.post("/blogs/api_key", [
+  validateRequest(
+    yup.object().shape({
+      requestBody: yup.object().shape({
+        api_key: yup.string().required()
+      })
+    })
+  )
+], async (req, res) => {
+  const key = await publickeysDal.findByPkOr404(req.body.api_key);
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
+  const blog = await findByPkOr404(key.BlogId);
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
 
 app.get("/blogs/auth", jwtRequired, async (req, res) => {
   let user = await findUserByPk(req.auth.userId);
