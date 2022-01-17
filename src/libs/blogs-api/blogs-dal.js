@@ -5,6 +5,13 @@ const {
 } = require("../blogpostcategories-dal");
 
 module.exports = {
+  getBlogHeaderWidetData: async BlogId => {
+    BlogId = Number(BlogId)
+    const pages = await prisma.pages.findMany({ where: { BlogId }})
+    const blog = await prisma.blogs.findUnique({ where: { id: BlogId }});
+    await pages;await blog;
+    return { blog, pages }
+  },
   findByPkOr404: (pk) => prisma.blogs.findUnique({ where: { id: Number(pk) }}),
   findAll: async ({ page = 1, pageSize = 10 }) => {
     page = Number(page)

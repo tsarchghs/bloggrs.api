@@ -11,6 +11,9 @@ module.exports = {
     // ]
     let posts = await prisma.posts.findMany({
       where,
+      include: {
+        users: true
+      },
       skip: Number(page) - 1 && Number(page-1) * Number(pageSize),
       take: Number(pageSize),
     });

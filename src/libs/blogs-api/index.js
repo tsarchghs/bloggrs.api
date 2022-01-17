@@ -21,6 +21,7 @@ const {
   getBlogCategories,
   getBlogPages,
   generatePublicKey,
+  getBlogHeaderWidetData,
 } = require("./blogs-dal");
 const { ErrorHandler } = require("../../utils/error");
 
@@ -156,6 +157,23 @@ app.get("/blogs/:blog_id/categories",[
     data: { categories },
   });
 });
+
+app.get("/blogs/:blog_id/header-widget-data", [
+  validateRequest(
+    yup.object().shape({
+      params: yup.object().shape({
+        blog_id: param_id.required()
+      })
+    })
+  )
+], async (req,res) => {
+  const data = await getBlogHeaderWidetData(req.params.blog_id);
+  return res.json({
+    code: 200,
+    message: "success",
+    data
+  })
+})
 
 app.get("/blogs/:blog_id/pages",[
   validateRequest(
