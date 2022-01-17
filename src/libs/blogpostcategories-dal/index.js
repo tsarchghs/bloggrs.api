@@ -8,6 +8,11 @@ module.exports = {
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
+    console.log({
+      where,
+      skip: (page - 1) & page,
+      take: pageSize,
+    })
     return await prisma.blogpostcategories.findMany({
       where,
       skip: (page - 1) & page,

@@ -135,8 +135,21 @@ app.post(
   }
 );
 
-app.get("/blogs/:blog_id/categories", async (req, res) => {
-  const categories = await getBlogCategories(req.params.blog_id);
+app.get("/blogs/:blog_id/categories",[
+  validateRequest(
+    yup.object().shape({
+      query: yup.object().shape({
+        page: param_id.default("1"),
+        pageSize: param_id.default("10"),
+        status: yup.string(),
+        query: yup.string(),
+      }),
+      params: yup.object().shape({
+        blog_id: param_id.required()
+      })
+  }))
+], async (req, res) => {
+  const categories = await getBlogCategories(req.params.blog_id, req.query);
   return res.json({
     code: 200,
     message: "success",
@@ -144,8 +157,22 @@ app.get("/blogs/:blog_id/categories", async (req, res) => {
   });
 });
 
-app.get("/blogs/:blog_id/pages", async (req, res) => {
-  const pages = await getBlogPages(req.params.blog_id);
+app.get("/blogs/:blog_id/pages",[
+  validateRequest(
+    yup.object().shape({
+      query: yup.object().shape({
+        page: param_id.default("1"),
+        pageSize: param_id.default("10"),
+        status: yup.string(),
+        query: yup.string(),
+      }),
+      params: yup.object().shape({
+        blog_id: param_id.required()
+      })
+    })
+  ),
+], async (req, res) => {
+  const pages = await getBlogPages(req.params.blog_id, req.query);
   return res.json({
     code: 200,
     message: "success",
@@ -185,8 +212,8 @@ app.get(
           post_id: param_id.required(),
         }),
         query: yup.object().shape({
-          page: yup.number().integer().positive().default(1),
-          pageSize: yup.number().integer().positive().default(10),
+          page: param_id.default("1"),
+          pageSize: param_id.default("10"),
         }),
       })
     ),
@@ -209,8 +236,8 @@ app.get(
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
-          page: yup.number().integer().positive().default(1),
-          pageSize: yup.number().integer().positive().default(10),
+          page: param_id.default("1"),
+          pageSize: param_id.default("10"),
           status: yup.string(),
           query: yup.string(),
         }),
