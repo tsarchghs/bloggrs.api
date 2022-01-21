@@ -1,7 +1,7 @@
 const prisma = require("../../prisma");
 
 module.exports = {
-  findPostsForBlog: async (BlogId, { page = 1, pageSize = 10 } = {}) => {
+  findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10 } = {}) => {
     const where = {
       BlogId: Number(BlogId),
     };
@@ -19,6 +19,9 @@ module.exports = {
     });
     posts = posts.map(async (post) => {
       post = JSON.parse(JSON.stringify(post));
+      const liked = Boolean(await prisma.postlikes.count({
+        where: { PostId: post.id, UserId }
+      }))
       const likes_count = await prisma.postlikes.count({
         where: { PostId: post.id },
       });
@@ -28,6 +31,8 @@ module.exports = {
       const meta = {
         likes_count,
         comments_count,
+        liked,
+        context: { PostId: post.id, UserId }
       };
       post.meta = meta;
       return post;

@@ -22,6 +22,7 @@ const {
   getBlogPages,
   generatePublicKey,
   getBlogHeaderWidetData,
+  likeBlogPostHandler,
 } = require("./blogs-dal");
 const { ErrorHandler } = require("../../utils/error");
 
@@ -209,9 +210,12 @@ app.get(
         }),
       })
     ),
+    jwtRequired,
+    passUserFromJWT
   ],
   async (req, res) => {
-    const posts = await findPostsForBlog(req.params.blog_id, req.query);
+    const { id: UserId } = req.user;
+    const posts = await findPostsForBlog(req.params.blog_id, UserId, req.query);
     return res.json({
       code: 200,
       message: "success",
@@ -245,6 +249,33 @@ app.get(
     });
   }
 );
+
+app.post(
+  "/blogs/:blog_id/posts/:post_id/:action",
+  [
+    validateRequest(
+      yup.object().shape({
+        params: yup.object().shape({
+          blog_id: param_id.required(),
+          post_id: param_id.required(),
+          action: yup.string().oneOf([ 'like', 'unlike' ])
+        }),
+      })
+    ),
+    jwtRequired,
+    passUserFromJWT
+  ],
+  async (req, res) => {
+    const { id: UserId } = req.user;
+    const { post_id: PostId, action } = req.params;
+    await likeBlogPostHandler({ PostId, UserId, action });
+    return res.json({
+      code: 200,
+      message: "success",
+    });
+  }
+);
+
 
 app.get(
   "/blogs",

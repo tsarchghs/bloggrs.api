@@ -87,5 +87,14 @@ module.exports = {
       take: pageSize,
     })
     return pages;
+  },
+  likeBlogPostHandler: async ({ PostId, UserId, action }) => {
+    PostId = Number(PostId)
+    UserId = Number(UserId)
+    switch (action) {
+      case "like": await prisma.postlikes.create({ data: { PostId, UserId } }); break;
+      case "unlike": await prisma.postlikes.deleteMany({ where: { PostId, UserId } }); break; 
+    }
+    return true;
   }
 };

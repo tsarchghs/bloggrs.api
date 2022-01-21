@@ -1,7 +1,12 @@
 if (global.docs_collector) docs_collector.generalAddYAML(__dirname + "/docs.yaml")
 
 const express = require("express");
-const { allowCrossDomain, jwtRequired, validateRequest } = require("../../middlewares");
+const { 
+    allowCrossDomain, 
+    jwtNotRequired, 
+    validateRequest, 
+    passUserOrCreateGuestFromJWT 
+} = require("../../middlewares");
 
 const app = module.exports = express();
 
@@ -11,7 +16,7 @@ const createToken = require("../utils/createToken")
 const { findUserByPk } = require("../users-dal");
 const { post_auth } = require("./validations");
 
-const validateCredentials = require("./validateCredentials")
+const validateCredentials = require("./validateCredentials");
 
 const getResponse = user => ({
     status: "success",
@@ -25,8 +30,10 @@ const getResponse = user => ({
 
 app.use(allowCrossDomain)
 
-app.get('/auth', jwtRequired, async (req, res) => {
-    let user = await findUserByPk(req.auth.userId);
+app.get('/auth', [
+    jwtNotRequired, passUserOrCreateGuestFromJWT
+], async (req, res) => {
+    const { user } = req;
     if (!user) throw new ErrorHandler(401, "Unauthorized")
     return res.json(getResponse(user))
 });
