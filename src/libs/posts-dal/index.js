@@ -1,4 +1,11 @@
 const prisma = require("../../prisma");
+const { convert } = require('html-to-text');
+
+function truncate(source, size) {
+  return source.length > size ? source.slice(0, size - 1) + "…" : source;
+}
+
+const getPostContentText = post => truncate(convert(post.html_content), 450);
 
 module.exports = {
   findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10 } = {}) => {
@@ -32,7 +39,7 @@ module.exports = {
         likes_count,
         comments_count,
         liked,
-        context: { PostId: post.id, UserId }
+        content_text: getPostContentText(post)
       };
       post.meta = meta;
       return post;
@@ -51,6 +58,7 @@ module.exports = {
     const meta = {
       likes_count,
       comments_count,
+      content_text: getPostContentText(post)
     };
     post.meta = meta;
     return post;
