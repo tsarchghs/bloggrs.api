@@ -68,6 +68,7 @@ model blogs {
 model categories {
   id                 Int                  @id @default(autoincrement())
   name               String               @unique(map: "name") @db.VarChar(255)
+  slug               String               @unique(map: "slug") @db.VarChar(255)
   createdAt          DateTime?             @db.DateTime(0) @default(now())
   updatedAt          DateTime?             @db.DateTime(0) @default(now())
   blogpostcategories blogpostcategories[]
@@ -214,6 +215,7 @@ model users {
 }
 
 enum posts_status {
+  ARCHIVED
   DRAFT
   PUBLISHED
   UNPUBLISHED

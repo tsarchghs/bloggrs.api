@@ -1,4 +1,4 @@
-const prisma = require("../../prisma");
+const { Category, Sequelize } = require("../../models");
 
 module.exports = {
   findByPkOr404: (pk) => Category.findByPkOr404(pk),
@@ -9,19 +9,19 @@ module.exports = {
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
-    return await prisma.categories.findMany({
+    return await Category.findAll({
       where,
-      skip: (page - 1) & page,
-      take: pageSize,
+      offset: (page - 1) & page,
+      limit: pageSize,
     });
   },
-  createCategory: async ({ name, slug }) =>
-    await prisma.categories.create({
-      data: { name, slug }
+  createCategory: async ({ name }) =>
+    await Category.create({
+      name,
     }),
   updateCategory: async ({ pk, data }) => {
     let keys = Object.keys(data);
-    let category = await prisma.categories.findByPkOr404(pk);
+    let category = await Category.findByPkOr404(pk);
     for (let key of keys) {
       category[key] = data[key];
     }
@@ -29,5 +29,5 @@ module.exports = {
     return category;
   },
   deleteCategory: async (pk) =>
-    await (await await prisma.categories.findByPkOr404(pk)).destroy(),
+    await (await await Category.findByPkOr404(pk)).destroy(),
 };

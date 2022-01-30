@@ -1,0 +1,34 @@
+paths:
+  "/auth":
+    post:
+      tags:
+      - Auth
+      summary: Get token with credentials
+    get:
+      tags:
+      - Auth
+      security:
+      - jwt_auth: []
+      summary: Get auth info by token
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          type: array
+                          items:
+                            "$ref": "#/components/schemas/User"
+                        token:
+                          type: string
+                          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImldhdCI6MTU5OTQ4MTQ2OH0.U9eHm-8zuCaGa776rUViOa33l22lSSRNctkfgstIz5k
+        '401':
+          description: Unauthorized

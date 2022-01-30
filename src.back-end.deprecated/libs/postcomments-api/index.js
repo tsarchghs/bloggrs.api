@@ -14,8 +14,14 @@ const { param_id, id } = require("../utils/validations");
 app.use(allowCrossDomain)
 
 const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
+    contract_type: yup.string().oneOf([
+        "SIGN_CONTRACT", "FACEBOOK_CONTRACT", "YOUTUBE_CONTRACT", "DIGITAL_PLATFORM_CONTRACTS"
+    ]),
+    start_date: yup.date(),
+    end_date: yup.date(),
+    comment: yup.string(),
+    file_url: yup.string(),
+    ClientId: id
 }
 const PostCommentFieldKeys = Object.keys(PostCommentFields)
 
@@ -57,16 +63,12 @@ app.get("/postcomments/:postcomment_id", [
 const CreatePostCommentFields = {};
 PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
 app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreatePostCommentFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let postcomment = await createPostComment(req.body);
     return res.json({
         code: 200,
         message: "success",

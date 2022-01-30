@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createReferral, updateReferral, deleteReferral, findByPkOr404 } = require("./referral-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,14 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
+const ReferralFields = {
+    type: yup.string().oneOf(["BLOG"]),
+    BlogId: id,
+    UserId: id
 }
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const ReferralFieldKeys = Object.keys(ReferralFields)
 
-app.get("/postcomments", [
+app.get("/referral", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +31,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let referrals = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { referrals }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/referral/:referral_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            referral_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const referral = await findByPkOr404(req.params.referral_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { referral }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreateReferralFields = {};
+ReferralFieldKeys.map(key => CreateReferralFields[key] = ReferralFields[key].required());
+app.post("/referral",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreateReferralFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let referral = await createReferral(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { referral }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/referral/:referral_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(ReferralFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            referral_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let referral = await updateReferral({
+        pk: req.params.referral_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { referral }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/referral/:referral_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            referral_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deleteReferral(req.params.referral_id)
     return res.json({
         code: 204,
         message: "success"

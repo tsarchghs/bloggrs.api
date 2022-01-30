@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createBlogContact, updateBlogContact, deleteBlogContact, findByPkOr404 } = require("./blogcontacts-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,12 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
+const BlogContactFields = {
+    name: yup.string()
 }
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const BlogContactFieldKeys = Object.keys(BlogContactFields)
 
-app.get("/postcomments", [
+app.get("/blogcontacts", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +29,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let blogcontacts = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { blogcontacts }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/blogcontacts/:blogcontact_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            blogcontact_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const blogcontact = await findByPkOr404(req.params.blogcontact_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { blogcontact }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreateBlogContactFields = {};
+BlogContactFieldKeys.map(key => CreateBlogContactFields[key] = BlogContactFields[key].required());
+app.post("/blogcontacts",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreateBlogContactFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let blogcontact = await createBlogContact(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { blogcontact }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/blogcontacts/:blogcontact_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(BlogContactFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            blogcontact_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let blogcontact = await updateBlogContact({
+        pk: req.params.blogcontact_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { blogcontact }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/blogcontacts/:blogcontact_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            blogcontact_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deleteBlogContact(req.params.blogcontact_id)
     return res.json({
         code: 204,
         message: "success"

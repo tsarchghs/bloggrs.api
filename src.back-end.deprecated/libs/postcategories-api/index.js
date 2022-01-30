@@ -5,130 +5,99 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPost, updatePost, deletePost, findByPkOr404 } = require("./posts-dal");
+const { findAll, createPostCategory, updatePostCategory, deletePostCategory, findByPkOr404 } = require("./postcategories-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
 const { param_id, id } = require("../utils/validations");
 
-
-yup.addMethod(yup.array, 'oneOfSchemas', function(schemas) {
-    return this.test(
-      'one-of-schemas',
-      'Not all items in ${path} match one of the allowed schemas',
-      items => items.every(item => {
-        return schemas.some(schema => schema.isValidSync(item, {strict: true}))
-      })
-    )
-  })
-
 app.use(allowCrossDomain)
 
 const PostFields = {
-    title: yup.string(),
-    slug: yup.string(),
-    html_content: yup.string(),
-    BlogId: id,
-    categories: yup.array().oneOfSchemas([
-        yup.object().shape({
-            title: yup.string().required()
-        }),
-        yup.object().shape({
-            slug: yup.string().required()
-        }),
-        yup.object().shape({
-            id: id.required()
-        }),
-    ])
-    // status: yup.string().default("")
+    name: yup.string()
 }
-const PostFieldKeys = Object.keys(PostFields)
+const PostCategoryFieldKeys = Object.keys(PostFields)
 
-app.get("/posts", [
-    // jwtRequired, passUserFromJWT,
+app.get("/postcategories", [
+    jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
             pageSize: yup.number().integer().positive().default(10),
             status: yup.string(),
-            query: yup.string(),
-            categories: yup.string()
+            query: yup.string()
         })
     }))
 ], async (req,res) => {
-    let { page, pageSize } = req.query;
-    let posts = await findAll(req.query); 
+    let postcategories = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { page, pageSize, posts }
+        data: { postcategories }
     })
 })
 
-app.get("/posts/:post_id", [
+app.get("/postcategories/:postcategory_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            post_id: param_id.required()
+            postcategory_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const post = await findByPkOr404(req.params.post_id);
+    const postcategory = await findByPkOr404(req.params.postcategory_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { post }
+        data: { postcategory }
     })
 })
 
 
 const CreatePostFields = {};
-PostFieldKeys.map(key => CreatePostFields[key] = PostFields[key].required());
-app.post("/posts",[
-    jwtRequired, passUserFromJWT,
+PostCategoryFieldKeys.map(key => CreatePostFields[key] = PostFields[key].required());
+app.post("/postcategories",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePostFields)
     }))
 ], async (req,res) => {
-    let post = await createPost({
-        ...req.body,
-        UserId: req.user.id,
-    });
+    let postcategory = await createPostCategory(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { post }
+        data: { postcategory }
     })
 })
 
-app.patch("/posts/:post_id", [
+app.patch("/postcategories/:postcategory_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PostFields),
         params: yup.object().shape({
-            post_id: param_id.required()
+            postcategory_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let post = await updatePost({
-        pk: req.params.post_id,
+    let postcategory = await updatePostCategory({
+        pk: req.params.postcategory_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { post }
+        data: { postcategory }
     })
 })
 
-app.delete("/posts/:post_id", [
+app.delete("/postcategories/:postcategory_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            post_id: param_id.required()
+            postcategory_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePost(req.params.post_id)
+    await deletePostCategory(req.params.postcategory_id)
     return res.json({
         code: 204,
         message: "success"

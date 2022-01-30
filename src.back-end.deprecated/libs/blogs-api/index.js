@@ -20,15 +20,7 @@ const {
   generateSecret,
   getBlogCategories,
   getBlogPages,
-  generatePublicKey,
-  getBlogHeaderWidetData,
-  likeBlogPostHandler,
 } = require("./blogs-dal");
-
-const {
-  findAll: findComments
-} = require("../postcomments-api/postcomments-dal");
-
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -36,7 +28,6 @@ const { param_id, id } = require("../utils/validations");
 const validateCredentials = require("./validateCredentials");
 const createBlogToken = require("../utils/createBlogToken");
 const { findPostsForBlog, findPost } = require("../posts-dal");
-const publickeysDal = require("../publickeys-api/publickeys-dal");
 
 app.use(allowCrossDomain);
 
@@ -79,47 +70,6 @@ app.post(
   }
 );
 
-app.post(
-  "/blogs/:blog_id/generate_public_key",
-  [
-    jwtRequired,
-    validateRequest(
-      yup.object().shape({
-        params: yup.object().shape({
-          blog_id: param_id.required(),
-        }),
-      })
-    ),
-  ],
-  async (req, res) => {
-    let key = await generatePublicKey(req.params.blog_id);
-    return res.json({
-      code: 200,
-      message: "success",
-      data: { key },
-    });
-  }
-);
-
-app.post("/blogs/api_key", [
-  validateRequest(
-    yup.object().shape({
-      requestBody: yup.object().shape({
-        api_key: yup.string().required()
-      })
-    })
-  )
-], async (req, res) => {
-  const key = await publickeysDal.findByPkOr404(req.body.api_key);
-  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
-  const blog = await findByPkOr404(key.BlogId);
-  return res.json({
-    code: 200,
-    message: "success",
-    data: { blog, key }
-  })
-});
-
 app.get("/blogs/auth", jwtRequired, async (req, res) => {
   let user = await findUserByPk(req.auth.userId);
   if (!user) throw new ErrorHandler(401, "Unauthorized");
@@ -142,21 +92,8 @@ app.post(
   }
 );
 
-app.get("/blogs/:blog_id/categories",[
-  validateRequest(
-    yup.object().shape({
-      query: yup.object().shape({
-        page: param_id.default("1"),
-        pageSize: param_id.default("10"),
-        status: yup.string(),
-        query: yup.string(),
-      }),
-      params: yup.object().shape({
-        blog_id: param_id.required()
-      })
-  }))
-], async (req, res) => {
-  const categories = await getBlogCategories(req.params.blog_id, req.query);
+app.get("/blogs/:blog_id/categories", async (req, res) => {
+  const categories = await getBlogCategories(req.params.blog_id);
   return res.json({
     code: 200,
     message: "success",
@@ -164,39 +101,8 @@ app.get("/blogs/:blog_id/categories",[
   });
 });
 
-app.get("/blogs/:blog_id/header-widget-data", [
-  validateRequest(
-    yup.object().shape({
-      params: yup.object().shape({
-        blog_id: param_id.required()
-      })
-    })
-  )
-], async (req,res) => {
-  const data = await getBlogHeaderWidetData(req.params.blog_id);
-  return res.json({
-    code: 200,
-    message: "success",
-    data
-  })
-})
-
-app.get("/blogs/:blog_id/pages",[
-  validateRequest(
-    yup.object().shape({
-      query: yup.object().shape({
-        page: param_id.default("1"),
-        pageSize: param_id.default("10"),
-        status: yup.string(),
-        query: yup.string(),
-      }),
-      params: yup.object().shape({
-        blog_id: param_id.required()
-      })
-    })
-  ),
-], async (req, res) => {
-  const pages = await getBlogPages(req.params.blog_id, req.query);
+app.get("/blogs/:blog_id/pages", async (req, res) => {
+  const pages = await getBlogPages(req.params.blog_id);
   return res.json({
     code: 200,
     message: "success",
@@ -210,17 +116,14 @@ app.get(
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
-          page: param_id,
-          pageSize: param_id,
+          page: yup.number().integer().positive().default(1),
+          pageSize: yup.number().integer().positive().default(10),
         }),
       })
     ),
-    jwtRequired,
-    passUserFromJWT
   ],
   async (req, res) => {
-    const { id: UserId } = req.user;
-    const posts = await findPostsForBlog(req.params.blog_id, UserId, req.query);
+    const posts = await findPostsForBlog(req.params.blog_id);
     return res.json({
       code: 200,
       message: "success",
@@ -236,12 +139,11 @@ app.get(
       yup.object().shape({
         params: yup.object().shape({
           blog_id: param_id.required(),
-          post_id: yup.string(),
+          post_id: param_id.required(),
         }),
         query: yup.object().shape({
-          page: param_id.default("1"),
-          pageSize: param_id.default("10"),
-          categories: yup.string()
+          page: yup.number().integer().positive().default(1),
+          pageSize: yup.number().integer().positive().default(10),
         }),
       })
     ),
@@ -257,61 +159,6 @@ app.get(
 );
 
 app.get(
-  "/blogs/:blog_id/posts/:post_id/comments",
-  [
-    validateRequest(
-      yup.object().shape({
-        params: yup.object().shape({
-          blog_id: param_id.required(),
-          post_id: yup.string(),
-        }),
-        query: yup.object().shape({
-          page: param_id.default("1"),
-          pageSize: param_id.default("10"),
-        }),
-      })
-    ),
-  ],
-  async (req, res) => {
-    const { post_id: PostId } = req.params;
-    const comments = await findComments({ PostId });
-
-    return res.json({
-      code: 200,
-      message: "success",
-      data: { comments },
-    });
-  }
-);
-
-app.post(
-  "/blogs/:blog_id/posts/:post_id/:action",
-  [
-    validateRequest(
-      yup.object().shape({
-        params: yup.object().shape({
-          blog_id: param_id.required(),
-          post_id: param_id.required(),
-          action: yup.string().oneOf([ 'like', 'unlike' ])
-        }),
-      })
-    ),
-    jwtRequired,
-    passUserFromJWT
-  ],
-  async (req, res) => {
-    const { id: UserId } = req.user;
-    const { post_id: PostId, action } = req.params;
-    await likeBlogPostHandler({ PostId, UserId, action });
-    return res.json({
-      code: 200,
-      message: "success",
-    });
-  }
-);
-
-
-app.get(
   "/blogs",
   [
     jwtRequired,
@@ -319,8 +166,8 @@ app.get(
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
-          page: param_id.default("1"),
-          pageSize: param_id.default("10"),
+          page: yup.number().integer().positive().default(1),
+          pageSize: yup.number().integer().positive().default(10),
           status: yup.string(),
           query: yup.string(),
         }),
@@ -360,10 +207,7 @@ app.get(
 
 const createBlogFields = {};
 BlogFieldKeys.map(
-  (key) => {
-    // if (key === 'description') return createBlogFields[key]
-    return (createBlogFields[key] = BlogFields[key].required())
-  }
+  (key) => (createBlogFields[key] = BlogFields[key].required())
 );
 app.post(
   "/blogs",

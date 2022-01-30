@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createPostLike, updatePostLike, deletePostLike, findByPkOr404 } = require("./postlikes-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,13 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
+const PostLikeFields = {
     PostId: id,
+    UserId: id
 }
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const PostLikeFieldKeys = Object.keys(PostLikeFields)
 
-app.get("/postcomments", [
+app.get("/postlikes", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +30,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let postlikes = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { postlikes }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/postlikes/:postlike_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            postlike_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const postlike = await findByPkOr404(req.params.postlike_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { postlike }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreatePostLikeFields = {};
+PostLikeFieldKeys.map(key => CreatePostLikeFields[key] = PostLikeFields[key].required());
+app.post("/postlikes",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreatePostLikeFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let postlike = await createPostLike(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { postlike }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/postlikes/:postlike_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(PostLikeFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            postlike_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let postlike = await updatePostLike({
+        pk: req.params.postlike_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { postlike }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/postlikes/:postlike_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            postlike_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deletePostLike(req.params.postlike_id)
     return res.json({
         code: 204,
         message: "success"

@@ -13,11 +13,11 @@ const {
 
 const {
   findAll,
-  createCategory,
-  updateCategory,
-  deleteCategory,
+  createBlogPostCategory,
+  updateBlogPostCategory,
+  deleteBlogPostCategory,
   findByPkOr404,
-} = require("./categories-dal");
+} = require("./blogpostcategories-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -25,16 +25,17 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain);
 
-const CategoryFields = {
-  name: yup.string(),
-  slug: yup.string(),
+const BlogPostCategoryFields = {
+  BlogId: id,
+  CategoryId: id,
 };
-const CategoryFieldKeys = Object.keys(CategoryFields);
+const BlogPostCategoryFieldKeys = Object.keys(BlogPostCategoryFields);
 
 app.get(
-  "/categories",
+  "/blogpostcategories",
   [
-    // jwtRequired, passUserFromJWT,
+    jwtRequired,
+    passUserFromJWT,
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
@@ -42,96 +43,98 @@ app.get(
           pageSize: yup.number().integer().positive().default(10),
           status: yup.string(),
           query: yup.string(),
-          BlogId: param_id,
         }),
       })
     ),
   ],
   async (req, res) => {
-    let categories = await findAll(req.query);
+    let blogpostcategories = await findAll(req.query);
     return res.json({
       message: "success",
       code: 200,
-      data: { categories },
+      data: { blogpostcategories },
     });
   }
 );
 
 app.get(
-  "/categories/:category_id",
+  "/blogpostcategories/:blogpostcategory_id",
   [
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({
-          category_id: param_id.required(),
+          blogpostcategory_id: param_id.required(),
         }),
       })
     ),
   ],
   async (req, res) => {
-    const category = await findByPkOr404(req.params.category_id);
+    const blogpostcategory = await findByPkOr404(
+      req.params.blogpostcategory_id
+    );
     return res.json({
       code: 200,
       message: "sucess",
-      data: { category },
+      data: { blogpostcategory },
     });
   }
 );
 
-const CreateCategoryFields = {};
-CategoryFieldKeys.map(
-  (key) => (CreateCategoryFields[key] = CategoryFields[key].required())
+const CreateBlogPostCategoryFields = {};
+BlogPostCategoryFieldKeys.map(
+  (key) =>
+    (CreateBlogPostCategoryFields[key] = BlogPostCategoryFields[key].required())
 );
 app.post(
-  "/categories",
+  "/blogpostcategories",
   [
     // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(
       yup.object().shape({
-        requestBody: yup.object().shape(CreateCategoryFields),
+        requestBody: yup.object().shape(CreateBlogPostCategoryFields),
       })
     ),
   ],
   async (req, res) => {
-    let category = await createCategory(req.body);
+    let blogpostcategory = await createBlogPostCategory(req.body);
     return res.json({
       code: 200,
       message: "success",
-      data: { category },
+      data: { blogpostcategory },
     });
   }
 );
 
 app.patch(
-  "/categories/:category_id",
+  "/blogpostcategories/:blogpostcategory_id",
   [
     jwtRequired,
     passUserFromJWT,
     adminRequired,
     validateRequest(
       yup.object().shape({
-        requestBody: yup.object().shape(CategoryFields),
+        requestBody: yup.object().shape(BlogPostCategoryFields),
         params: yup.object().shape({
-          category_id: param_id.required(),
+          blogpostcategory_id: param_id.required(),
         }),
       })
     ),
   ],
   async (req, res) => {
-    let category = await updateCategory({
-      pk: req.params.category_id,
+    let blogpostcategory = await updateBlogPostCategory({
+      pk: req.params.blogpostcategory_id,
       data: req.body,
     });
     return res.json({
       code: 200,
       message: "success",
-      data: { category },
+      data: { blogpostcategory },
     });
   }
 );
 
 app.delete(
-  "/categories/:category_id",
+  "/blogpostcategories/:blogpostcategory_id",
   [
     jwtRequired,
     passUserFromJWT,
@@ -139,13 +142,13 @@ app.delete(
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({
-          category_id: param_id.required(),
+          blogpostcategory_id: param_id.required(),
         }),
       })
     ),
   ],
   async (req, res) => {
-    await deleteCategory(req.params.category_id);
+    await deleteBlogPostCategory(req.params.blogpostcategory_id);
     return res.json({
       code: 204,
       message: "success",

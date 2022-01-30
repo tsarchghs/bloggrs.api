@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createPage, updatePage, deletePage, findByPkOr404 } = require("./pages-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,15 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
+const PageFields = {
+    name: yup.string(),
+    slug: yup.string(),
+    BlogId: id,
+    UserId: id
 }
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const PageFieldKeys = Object.keys(PageFields)
 
-app.get("/postcomments", [
+app.get("/pages", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +32,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let pages = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { pages }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/pages/:page_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            page_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const page = await findByPkOr404(req.params.page_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { page }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreatePageFields = {};
+PageFieldKeys.map(key => CreatePageFields[key] = PageFields[key].required());
+app.post("/pages",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreatePageFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let page = await createPage(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { page }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/pages/:page_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(PageFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            page_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let page = await updatePage({
+        pk: req.params.page_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { page }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/pages/:page_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            page_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deletePage(req.params.page_id)
     return res.json({
         code: 204,
         message: "success"

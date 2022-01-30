@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createLegal, updateLegal, deleteLegal, findByPkOr404 } = require("./legals-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,19 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
+const LegalFields = {
+    contract_type: yup.string().oneOf([
+        "SIGN_CONTRACT", "FACEBOOK_CONTRACT", "YOUTUBE_CONTRACT", "DIGITAL_PLATFORM_CONTRACTS"
+    ]),
+    start_date: yup.date(),
+    end_date: yup.date(),
+    comment: yup.string(),
+    file_url: yup.string(),
+    ClientId: id
 }
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const LegalFieldKeys = Object.keys(LegalFields)
 
-app.get("/postcomments", [
+app.get("/legals", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +36,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let legals = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { legals }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/legals/:legal_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            legal_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const legal = await findByPkOr404(req.params.legal_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { legal }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreateLegalFields = {};
+LegalFieldKeys.map(key => CreateLegalFields[key] = LegalFields[key].required());
+app.post("/legals",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreateLegalFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let legal = await createLegal(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { legal }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/legals/:legal_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(LegalFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            legal_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let legal = await updateLegal({
+        pk: req.params.legal_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { legal }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/legals/:legal_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            legal_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deleteLegal(req.params.legal_id)
     return res.json({
         code: 204,
         message: "success"

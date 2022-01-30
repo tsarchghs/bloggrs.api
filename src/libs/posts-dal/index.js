@@ -8,10 +8,23 @@ function truncate(source, size) {
 const getPostContentText = post => truncate(convert(post.html_content), 450);
 
 module.exports = {
-  findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10 } = {}) => {
+  findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10, categories, status } = {}) => {
     const where = {
       BlogId: Number(BlogId),
     };
+    if (status) where.status = { equals: status }
+    if (categories) {
+      categories = categories.split(",");
+      where.postcategories = {
+          some: {
+              categories: {
+                  slug: {
+                      in: categories
+                  }
+              }
+          }
+      }
+  }
     // if (query) where[Sequelize.Op.or] = [
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
@@ -47,7 +60,13 @@ module.exports = {
     return Promise.all(posts);
   },
   findPost: async (PostId) => {
-    let post = await prisma.posts.findUnique({ where: { id: PostId }});
+    let where = {};
+    const is_ID = !isNaN(Number(PostId));
+    
+    if (is_ID) where.id = Number(PostId)
+    else where.slug = PostId
+
+    let post = await prisma.posts.findFirst({ where });
     post = JSON.parse(JSON.stringify(post));
     const likes_count = await prisma.postlikes.count({
       where: { PostId: post.id },

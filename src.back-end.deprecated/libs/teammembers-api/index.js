@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createTeamMember, updateTeamMember, deleteTeamMember, findByPkOr404 } = require("./teammebers-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,19 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
+const TeamMemberFields = {
+    contract_type: yup.string().oneOf([
+        "SIGN_CONTRACT", "FACEBOOK_CONTRACT", "YOUTUBE_CONTRACT", "DIGITAL_PLATFORM_CONTRACTS"
+    ]),
+    start_date: yup.date(),
+    end_date: yup.date(),
+    comment: yup.string(),
+    file_url: yup.string(),
+    ClientId: id
 }
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const TeamMemberFieldKeys = Object.keys(TeamMemberFields)
 
-app.get("/postcomments", [
+app.get("/teammembers", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +36,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let teammembers = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { teammembers }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/teammembers/:teammember_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            teammember_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const teammember = await findByPkOr404(req.params.teammember_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { teammember }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreateTeamMemberFields = {};
+TeamMemberFieldKeys.map(key => CreateTeamMemberFields[key] = TeamMemberFields[key].required());
+app.post("/teammembers",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreateTeamMemberFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let teammember = await createTeamMember(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { teammember }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/teammembers/:teammember_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(TeamMemberFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            teammember_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let teammember = await updateTeamMember({
+        pk: req.params.teammember_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { teammember }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/teammembers/:teammember_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            teammember_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deleteTeamMember(req.params.teammember_id)
     return res.json({
         code: 204,
         message: "success"

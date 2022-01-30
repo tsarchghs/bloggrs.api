@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createPostComment, updatePostComment, deletePostComment, findByPkOr404 } = require("./postcomments-dal");
+const { findAll, createSecretKey, updateSecretKey, deleteSecretKey, findByPkOr404 } = require("./secretkeys-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,13 +13,12 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const PostCommentFields = {
-    content: yup.string(),
-    PostId: id,
-}
-const PostCommentFieldKeys = Object.keys(PostCommentFields)
+const SecretKeyFields = {
 
-app.get("/postcomments", [
+}
+const SecretKeyFieldKeys = Object.keys(SecretKeyFields)
+
+app.get("/secretkeys", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -30,79 +29,75 @@ app.get("/postcomments", [
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    let secretkeys = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { secretkeys }
     })
 })
 
-app.get("/postcomments/:postcomment_id", [
+app.get("/secretkeys/:secretkey_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            secretkey_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const postcomment = await findByPkOr404(req.params.postcomment_id);
+    const secretkey = await findByPkOr404(req.params.secretkey_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { postcomment }
+        data: { secretkey }
     })
 })
 
 
-const CreatePostCommentFields = {};
-PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
-app.post("/postcomments",[
-    jwtRequired, passUserFromJWT,
+const CreateSecretKeyFields = {};
+SecretKeyFieldKeys.map(key => CreateSecretKeyFields[key] = SecretKeyFields[key].required());
+app.post("/secretkeys",[
+    // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields)
+        requestBody: yup.object().shape(CreateSecretKeyFields)
     }))
 ], async (req,res) => {
-    let { id: UserId } = req.user;
-    let postcomment = await createPostComment({
-        ...req.body,
-        UserId
-    });
+    let secretkey = await createSecretKey(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { secretkey }
     })
 })
 
-app.patch("/postcomments/:postcomment_id", [
+app.patch("/secretkeys/:secretkey_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(PostCommentFields),
+        requestBody: yup.object().shape(SecretKeyFields),
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            secretkey_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let postcomment = await updatePostComment({
-        pk: req.params.postcomment_id,
+    let secretkey = await updateSecretKey({
+        pk: req.params.secretkey_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { postcomment }
+        data: { secretkey }
     })
 })
 
-app.delete("/postcomments/:postcomment_id", [
+app.delete("/secretkeys/:secretkey_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            postcomment_id: param_id.required()
+            secretkey_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deletePostComment(req.params.postcomment_id)
+    await deleteSecretKey(req.params.secretkey_id)
     return res.json({
         code: 204,
         message: "success"
