@@ -24,17 +24,18 @@ app.get("/postcomments", [
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
-            pageSize: yup.number().integer().positive().default(10),
+            pageSize: yup.number().integer().positive().default(3),
             status: yup.string(),
             query: yup.string()
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    const { page, pageSize } = req.query;
+    const { postcomments, count } = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { count, page, pageSize, postcomments }
     })
 })
 

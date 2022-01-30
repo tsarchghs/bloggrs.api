@@ -3,18 +3,22 @@ const prisma = require("../../prisma");
 
 module.exports = {
     findByPkOr404: pk => prisma.postcomments.findByPkOr404(pk),
-    findAll: async ({ page = 1, pageSize = 10, PostId }) => {
+    findAll: async ({ page = 1, pageSize = 3, PostId }) => {
         const where = {}
         if (PostId) where.PostId = Number(PostId);
         // if (query) where[Sequelize.Op.or] = [
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
         // ]
-        return await prisma.postcomments.findMany({
+        const count = await prisma.postcomments.count({
+            where
+        })
+        const postcomments = await prisma.postcomments.findMany({
             where,
             skip: (page - 1) & page,
             take: pageSize,
         })
+        return { postcomments, count }
     },
     createPostComment: async ({ 
         content, PostId, UserId

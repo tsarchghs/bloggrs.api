@@ -266,20 +266,20 @@ app.get(
           post_id: yup.string(),
         }),
         query: yup.object().shape({
-          page: param_id.default("1"),
-          pageSize: param_id.default("10"),
-        }),
+          page: yup.number().integer().positive().default(1),
+          pageSize: yup.number().integer().positive().default(3),
+      }),
       })
     ),
   ],
   async (req, res) => {
     const { post_id: PostId } = req.params;
-    const comments = await findComments({ PostId });
-
+    const { page, pageSize } = req.query;
+    const { postcomments: comments, count } = await findComments({ PostId });
     return res.json({
       code: 200,
       message: "success",
-      data: { comments },
+      data: { page: page || 1, pageSize: pageSize || 3, count, comments },
     });
   }
 );
