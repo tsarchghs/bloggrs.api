@@ -14,7 +14,11 @@ const { param_id, id } = require("../utils/validations");
 app.use(allowCrossDomain)
 
 const BlogContactFields = {
-    name: yup.string()
+    first_name: yup.string(),
+    last_name: yup.string(),
+    email: yup.string(),
+    content: yup.string(),
+    BlogId: id
 }
 const BlogContactFieldKeys = Object.keys(BlogContactFields)
 

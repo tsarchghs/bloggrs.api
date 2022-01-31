@@ -23,6 +23,7 @@ const {
   generatePublicKey,
   getBlogHeaderWidetData,
   likeBlogPostHandler,
+  findBySlug,
 } = require("./blogs-dal");
 
 const {
@@ -100,6 +101,20 @@ app.post(
     });
   }
 );
+
+app.get("/blogs/:slug/api_key", async (req, res) => {
+  const { slug } = req.params;
+  const blog = await findBySlug(slug);
+  const key = await publickeysDal.findOne({
+    BlogId: blog.id
+  });
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "slug not valid"])
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
 
 app.post("/blogs/api_key", [
   validateRequest(
@@ -266,20 +281,22 @@ app.get(
           post_id: yup.string(),
         }),
         query: yup.object().shape({
-          page: yup.number().integer().positive().default(1),
-          pageSize: yup.number().integer().positive().default(3),
-      }),
+          page: param_id.default("1"),
+          pageSize: param_id.default("3"),
+        }),
       })
     ),
   ],
   async (req, res) => {
     const { post_id: PostId } = req.params;
     const { page, pageSize } = req.query;
-    const { postcomments: comments, count } = await findComments({ PostId });
+    const { postcomments: comments, count } = await findComments({ 
+      PostId, page, pageSize
+    });
     return res.json({
       code: 200,
       message: "success",
-      data: { page: page || 1, pageSize: pageSize || 3, count, comments },
+      data: { page: Number(page) || 1, pageSize: Number(pageSize) || 3, count, comments },
     });
   }
 );

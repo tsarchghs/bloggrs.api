@@ -13,6 +13,7 @@ module.exports = {
     return { blog, pages }
   },
   findByPkOr404: (pk) => prisma.blogs.findUnique({ where: { id: Number(pk) }}),
+  findBySlug: (slug) => prisma.blogs.findUnique({ where: { slug }}),
   findAll: async ({ page = 1, pageSize = 10 }) => {
     page = Number(page)
     pageSize = Number(pageSize)

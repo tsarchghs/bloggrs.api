@@ -14,7 +14,7 @@ const { param_id, id } = require("../utils/validations");
 app.use(allowCrossDomain)
 
 const PostCommentFields = {
-    content: yup.string(),
+    content: yup.string().min(1),
     PostId: id,
 }
 const PostCommentFieldKeys = Object.keys(PostCommentFields)
@@ -23,8 +23,8 @@ app.get("/postcomments", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
-            page: yup.number().integer().positive().default(1),
-            pageSize: yup.number().integer().positive().default(3),
+            page: param_id.default("1"),
+            pageSize: param_id.default("3"),
             status: yup.string(),
             query: yup.string()
         })

@@ -44,6 +44,7 @@ model blogpostcategories {
 model blogs {
   id                 Int                  @id @default(autoincrement())
   name               String               @db.VarChar(255)
+  slug               String               @unique(map: "slug") @db.VarChar(255)
   description        String               @db.LongText
   logo_url           String               @db.VarChar(255)
   createdAt          DateTime?             @db.DateTime(0) @default(now())
