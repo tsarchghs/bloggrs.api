@@ -5,6 +5,8 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
     if (!blocks.length && blocks) blocks = [ blocks ]
     if (BlockId) {
         for (block of blocks){
+            if (!block.children) block.children = []
+            
             const _block_ = await prisma.blocks.create({
                 data: { 
                     name: block.name, 
@@ -41,6 +43,8 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
 
     } else {
         for (block of blocks){
+            if (!block.children) block.children = []
+            
             const _block_ = await prisma.blocks.create({
                 data: { 
                     name: block.name, 

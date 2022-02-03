@@ -41,25 +41,26 @@ const publickeysDal = require("../publickeys-api/publickeys-dal");
 
 app.use(allowCrossDomain);
 
-
 const block_fields = {
   name: yup.string().required(),
   attributes: yup.object().required()
 }
 
-const blocks_schema = yup.object().shape({
-  ...block_fields,
-  children: yup.array().of(
-      yup.object().shape({
-          ...block_fields,
-          children: yup.array().of(
-              yup.object().shape({
-                  ...block_fields
-              })
-          )
-      })
-  )
-})
+const blocks_schema = yup.array().of(
+  yup.object().shape({
+    ...block_fields,
+    children: yup.array().of(
+        yup.object().shape({
+            ...block_fields,
+            children: yup.array().of(
+                yup.object().shape({
+                    ...block_fields
+                })
+            )
+        })
+    )
+  })
+)
 
 
 const BlogFields = {
