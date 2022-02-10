@@ -1,5 +1,6 @@
 const prisma = require("../../prisma");
 const { convert } = require('html-to-text');
+const { ErrorHandler } = require("../../utils/error");
 
 function truncate(source, size) {
   return source.length > size ? source.slice(0, size - 1) + "…" : source;
@@ -67,6 +68,7 @@ module.exports = {
     else where.slug = PostId
 
     let post = await prisma.posts.findFirst({ where });
+    if (!post) throw new ErrorHandler.get404("Post");
     post = JSON.parse(JSON.stringify(post));
     const likes_count = await prisma.postlikes.count({
       where: { PostId: post.id },
