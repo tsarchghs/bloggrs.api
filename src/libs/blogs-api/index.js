@@ -38,29 +38,9 @@ const validateCredentials = require("./validateCredentials");
 const createBlogToken = require("../utils/createBlogToken");
 const { findPostsForBlog, findPost } = require("../posts-dal");
 const publickeysDal = require("../publickeys-api/publickeys-dal");
+const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
 
 app.use(allowCrossDomain);
-
-const block_fields = {
-  name: yup.string().required(),
-  attributes: yup.object().required()
-}
-
-const blocks_schema = yup.array().of(
-  yup.object().shape({
-    ...block_fields,
-    children: yup.array().of(
-        yup.object().shape({
-            ...block_fields,
-            children: yup.array().of(
-                yup.object().shape({
-                    ...block_fields
-                })
-            )
-        })
-    )
-  })
-)
 
 
 const BlogFields = {
@@ -69,7 +49,6 @@ const BlogFields = {
   logo_url: yup.string(),
   slug: yup.string(),
   BlogCategoryId: id,
-  blocks: blocks_schema
 };
 const BlogFieldKeys = Object.keys(BlogFields);
 
@@ -242,6 +221,28 @@ app.get("/blogs/:blog_id/pages",[
     data: { pages },
   });
 });
+
+app.get("/blogs/:blog_id/pages/:slug", [
+  validateRequest(
+    yup.object().shape({
+      params: yup.object().shape({
+        blog_id: param_id.required(),
+        slug: yup.string().required()
+      })
+    })
+  )
+], async (req,res) => {
+  const {
+    blog_id: BlogId,
+    slug 
+  } = req.params;
+  const page = await findByBlogSlugOr404({ BlogId, slug });
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { page }
+  })
+})
 
 app.get(
   "/blogs/:blog_id/posts",

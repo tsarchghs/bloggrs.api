@@ -1,8 +1,44 @@
 const prisma = require("../../prisma");
 const yup = require("yup");
 
-const setBlocks = async ({ BlogId, blocks, BlockId }) => {
+const setBlocks = async ({ PageId, blocks, BlockId, first_execution_completed }) => {
     if (!blocks.length && blocks) blocks = [ blocks ]
+    
+    /*
+        Delete all existing blocks and related data
+    */
+   if (!first_execution_completed) {
+       await (async function() {
+           const blocks__ = await prisma.blocks.findMany({
+               where: { PageId }
+           })
+           let transactions = [];
+           for (let block of blocks__){
+               const { id: BlockId } = block;
+               transactions = transactions.concat([
+                   prisma.blockchildrens.deleteMany({
+                       where: { BlockId }
+                   }),
+                   prisma.children.deleteMany({
+                       where: { BlockId }
+                   }),
+                   prisma.blockattributes.deleteMany({
+                       where: { BlockId }
+                   }),
+               ])
+           }
+           await prisma.$transaction(transactions)
+
+           await prisma.blocks.deleteMany({
+               where: { PageId }
+           })
+       })()
+   }
+
+
+    /* END */
+
+
     if (BlockId) {
         for (block of blocks){
             if (!block.children) block.children = []
@@ -10,11 +46,11 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
             const _block_ = await prisma.blocks.create({
                 data: { 
                     name: block.name, 
-                    BlogId,
+                    PageId,
                     isChild: true
                 }
             })
-
+            console.log({_block_})
             for (attr_key of Object.keys(block.attributes)){
                 const attr = { 
                     key: attr_key, 
@@ -25,7 +61,7 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
                     data: { ...attr, BlockId: _block_.id }
                 })
             }
-
+            console.log('_block_.id', _block_.id, _block_, BlockId )
             const child = await prisma.children.create({
                 data: { BlockId: _block_.id }
             })
@@ -36,7 +72,8 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
                 }
             })    
             if (block.children.length) await setBlocks({
-                BlogId, blocks: block.children, BlockId: _block_.id
+                PageId, blocks: block.children, BlockId: _block_.id,
+                first_execution_completed: true
             }) 
             
         }
@@ -48,7 +85,7 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
             const _block_ = await prisma.blocks.create({
                 data: { 
                     name: block.name, 
-                    BlogId 
+                    PageId 
                 } 
             })
             for (attr_key of Object.keys(block.attributes)){
@@ -63,7 +100,8 @@ const setBlocks = async ({ BlogId, blocks, BlockId }) => {
             }
 
             if (block.children.length) await setBlocks({
-                BlogId, blocks: block.children, BlockId: _block_.id
+                PageId, blocks: block.children, BlockId: _block_.id,
+                first_execution_completed: true
             }) 
         }    
     }
@@ -98,10 +136,10 @@ const getBlock = async (block) => {
 }
 
 module.exports = {
-    getBlocks: async ({ BlogId }) => {
+    getBlocks: async ({ PageId }) => {
         const formatted_blocks = []
         const blocks = await prisma.blocks.findMany({
-            where: { BlogId: BlogId, isChild: false }
+            where: { PageId: PageId, isChild: false }
         })
 
         for (block of blocks) {

@@ -4,6 +4,7 @@ const {
   findAll: findAllBlogPostCategories,
 } = require("../blogpostcategories-dal");
 const { getBlocks, setBlocks } = require("../blocks-dal");
+const { transformPage } = require("../pages-api/pages-dal");
 
 
 const transformBlog = async blog => {
@@ -67,14 +68,12 @@ module.exports = {
         BlogCategoryId,
       }
     })
-    if (blocks) await setBlocks({ BlogId: blog.id, blocks })
     return blog;
   },
   updateBlog: async ({ pk, data }) => {
     let keys = Object.keys(data);
     let blog = await prisma.blogs.findByPkOr404(pk);
     for (let key of keys) {
-      if (key === "blocks") await setBlocks({ BlogId, blocks: data[key] })
       blog[key] = data[key];
     }
     await blog.save();
@@ -113,14 +112,16 @@ module.exports = {
   },
   getBlogPages: async (BlogId, { page = 1, pageSize = 10 }) => {
     BlogId = Number(BlogId)
-    page = Number(BlogId)
+    page = Number(page)
     pageSize = Number(pageSize)
     const pages = await prisma.pages.findMany({
       where: { BlogId },
       skip: (page - 1) & page,
       take: pageSize,
     })
-    return pages;
+    return await Promise.all(
+      pages.map(page => transformPage(page))
+    )
   },
   likeBlogPostHandler: async ({ PostId, UserId, action }) => {
     PostId = Number(PostId)

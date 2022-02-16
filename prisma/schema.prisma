@@ -61,7 +61,6 @@ model blogs {
   secretkeys         secretkeys[]
   publickeys         publickeys[]
   teammembers        teammembers[]
-  blocks             blocks[]
 
   @@index([BlogCategoryId], map: "BlogCategoryId")
   @@index([UserId], map: "UserId")
@@ -70,15 +69,15 @@ model blogs {
 model blocks {
   id              Int               @id @default(autoincrement())
   name            String            @db.VarChar(255)
-  isChild         Boolean           @default(false)           
+  isChild         Boolean           @default(false)
   blockattributes blockattributes[]
   blockchildrens  blockchildrens[]
   children        children[]
 
-  blog      blogs    @relation(fields: [BlogId], references: [id], onDelete: Cascade)
-  BlogId    Int
-  @@index([BlogId], map: "BlogId")
+  page   pages @relation(fields: [PageId], references: [id], onDelete: Cascade)
+  PageId Int
 
+  @@index([PageId], map: "PageId")
 }
 
 model children {
@@ -87,8 +86,8 @@ model children {
   BlockId        Int
   blockchildrens blockchildrens[]
 
-  @@index([BlockId], map: "BlockId")
 
+  @@index([BlockId], map: "BlockId")
 }
 
 model blockchildrens {
@@ -105,9 +104,9 @@ model blockchildrens {
 
 model blockattributes {
   id      Int    @id @default(autoincrement())
-  type     String  @db.VarChar(255)
-  key     String  @db.VarChar(255)
-  value   String  @db.VarChar(255)
+  type    String @db.VarChar(255)
+  key     String @db.VarChar(255)
+  value   String @db.VarChar(255)
   block   blocks @relation(fields: [BlockId], references: [id])
   BlockId Int
 
@@ -137,6 +136,7 @@ model pages {
 
   @@index([BlogId], map: "BlogId")
   @@index([UserId], map: "UserId")
+  blocks blocks[]
 }
 
 model postcategories {
