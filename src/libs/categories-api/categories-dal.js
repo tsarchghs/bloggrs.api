@@ -15,9 +15,9 @@ module.exports = {
       take: pageSize,
     });
   },
-  createCategory: async ({ name }) =>
+  createCategory: async ({ name, slug }) =>
     await prisma.categories.create({
-      data: { name }
+      data: { name, slug }
     }),
   updateCategory: async ({ pk, data }) => {
     let keys = Object.keys(data);

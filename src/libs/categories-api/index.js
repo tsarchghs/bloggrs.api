@@ -27,6 +27,7 @@ app.use(allowCrossDomain);
 
 const CategoryFields = {
   name: yup.string(),
+  slug: yup.string(),
 };
 const CategoryFieldKeys = Object.keys(CategoryFields);
 

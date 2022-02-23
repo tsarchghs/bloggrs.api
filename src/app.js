@@ -38,6 +38,7 @@ const teammembers_api = require("./libs/teammembers-api");
 const secretkeys_api = require("./libs/secretkeys-api");
 const publickeys_api = require("./libs/publickeys-api");
 const blogpostcategories_api = require("./libs/blogpostcategories-api");
+const blogcontacts_api = require("./libs/blogcontacts-api");
 
 const app = express();
 const server = http.createServer(app);
@@ -57,6 +58,7 @@ app.use(PATHNAME_PREFIX, api_docs);
 app.use(PATHNAME_PREFIX, auth_api);
 app.use(PATHNAME_PREFIX, users_api);
 app.use(PATHNAME_PREFIX, blogs_api);
+app.use(PATHNAME_PREFIX, blogcontacts_api);
 app.use(PATHNAME_PREFIX, blogcategories_api);
 app.use(PATHNAME_PREFIX, categories_api);
 app.use(PATHNAME_PREFIX, pages_api);

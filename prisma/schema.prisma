@@ -8,30 +8,30 @@ datasource db {
 }
 
 model blogcategories {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique(map: "name") @db.VarChar(255)
-  createdAt DateTime? @db.DateTime(0) @default(now())
-  updatedAt DateTime? @db.DateTime(0) @default(now())
+  id        Int       @id @default(autoincrement())
+  name      String    @unique(map: "name") @db.VarChar(255)
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
   blogs     blogs[]
 }
 
 model blogcontacts {
-  id         Int      @id @default(autoincrement())
-  first_name String   @db.VarChar(255)
-  last_name  String   @db.VarChar(255)
-  email      String   @db.VarChar(255)
-  content    String   @db.MediumText
-  createdAt  DateTime? @db.DateTime(0) @default(now())
-  updatedAt  DateTime? @db.DateTime(0) @default(now())
+  id         Int       @id @default(autoincrement())
+  first_name String    @db.VarChar(255)
+  last_name  String    @db.VarChar(255)
+  email      String    @db.VarChar(255)
+  content    String    @db.MediumText
+  createdAt  DateTime? @default(now()) @db.DateTime(0)
+  updatedAt  DateTime? @default(now()) @db.DateTime(0)
   BlogId     Int
-  blogs      blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "blogcontacts_ibfk_1")
+  blogs      blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "blogcontacts_ibfk_1")
 
   @@index([BlogId], map: "BlogId")
 }
 
 model blogpostcategories {
-  createdAt  DateTime?     @db.DateTime(0) @default(now())
-  updatedAt  DateTime?     @db.DateTime(0) @default(now())
+  createdAt  DateTime?  @default(now()) @db.DateTime(0)
+  updatedAt  DateTime?  @default(now()) @db.DateTime(0)
   CategoryId Int
   BlogId     Int
   blogs      blogs      @relation(fields: [BlogId], references: [id], onDelete: Cascade, map: "blogpostcategories_ibfk_2")
@@ -44,10 +44,11 @@ model blogpostcategories {
 model blogs {
   id                 Int                  @id @default(autoincrement())
   name               String               @db.VarChar(255)
+  slug               String               @unique(map: "slug") @db.VarChar(255)
   description        String               @db.LongText
   logo_url           String               @db.VarChar(255)
-  createdAt          DateTime?             @db.DateTime(0) @default(now())
-  updatedAt          DateTime?             @db.DateTime(0) @default(now())
+  createdAt          DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt          DateTime?            @default(now()) @db.DateTime(0)
   UserId             Int
   BlogCategoryId     Int
   blogcategories     blogcategories       @relation(fields: [BlogCategoryId], references: [id], onDelete: NoAction, map: "blogs_ibfk_2")
@@ -65,33 +66,82 @@ model blogs {
   @@index([UserId], map: "UserId")
 }
 
+model blocks {
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(255)
+  isChild         Boolean           @default(false)
+  blockattributes blockattributes[]
+  blockchildrens  blockchildrens[]
+  children        children[]
+
+  page   pages @relation(fields: [PageId], references: [id], onDelete: Cascade)
+  PageId Int
+
+  @@index([PageId], map: "PageId")
+}
+
+model children {
+  id             Int              @id @default(autoincrement())
+  block          blocks           @relation(fields: [BlockId], references: [id])
+  BlockId        Int
+  blockchildrens blockchildrens[]
+
+
+  @@index([BlockId], map: "BlockId")
+}
+
+model blockchildrens {
+  createdAt  DateTime? @default(now()) @db.DateTime(0)
+  updatedAt  DateTime? @default(now()) @db.DateTime(0)
+  BlockId    Int
+  ChildrenId Int
+  children   children  @relation(fields: [ChildrenId], references: [id], onDelete: Cascade, map: "blockchildrens_ibfk_2")
+  blocks     blocks    @relation(fields: [BlockId], references: [id], onDelete: Cascade, map: "blockchildrens_ibfk_1")
+
+  @@id([BlockId, ChildrenId])
+  @@index([BlockId], map: "BlockId")
+}
+
+model blockattributes {
+  id      Int    @id @default(autoincrement())
+  type    String @db.VarChar(255)
+  key     String @db.VarChar(255)
+  value   String @db.VarChar(255)
+  block   blocks @relation(fields: [BlockId], references: [id])
+  BlockId Int
+
+  @@unique([id, key])
+}
+
 model categories {
   id                 Int                  @id @default(autoincrement())
   name               String               @unique(map: "name") @db.VarChar(255)
-  createdAt          DateTime?             @db.DateTime(0) @default(now())
-  updatedAt          DateTime?             @db.DateTime(0) @default(now())
+  slug               String               @unique(map: "slug") @db.VarChar(255)
+  createdAt          DateTime?            @default(now()) @db.DateTime(0)
+  updatedAt          DateTime?            @default(now()) @db.DateTime(0)
   blogpostcategories blogpostcategories[]
   postcategories     postcategories[]
 }
 
 model pages {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  slug      String   @db.VarChar(255)
-  createdAt DateTime? @db.DateTime(0) @default(now())
-  updatedAt DateTime? @db.DateTime(0) @default(now())
+  id        Int       @id @default(autoincrement())
+  name      String    @db.VarChar(255)
+  slug      String    @db.VarChar(255)
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
   BlogId    Int
   UserId    Int
-  blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "pages_ibfk_1")
-  users     users    @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "pages_ibfk_2")
+  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "pages_ibfk_1")
+  users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "pages_ibfk_2")
 
   @@index([BlogId], map: "BlogId")
   @@index([UserId], map: "UserId")
+  blocks blocks[]
 }
 
 model postcategories {
-  createdAt  DateTime?   @db.DateTime(0) @default(now())
-  updatedAt  DateTime?   @db.DateTime(0) @default(now())
+  createdAt  DateTime?  @default(now()) @db.DateTime(0)
+  updatedAt  DateTime?  @default(now()) @db.DateTime(0)
   CategoryId Int
   PostId     Int
   categories categories @relation(fields: [CategoryId], references: [id], onDelete: Cascade, map: "postcategories_ibfk_1")
@@ -102,27 +152,27 @@ model postcategories {
 }
 
 model postcomments {
-  id        Int      @id @default(autoincrement())
-  content   String   @db.MediumText
-  createdAt DateTime? @db.DateTime(0) @default(now())
-  updatedAt DateTime? @db.DateTime(0) @default(now())
+  id        Int       @id @default(autoincrement())
+  content   String    @db.MediumText
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
   PostId    Int?
   UserId    Int
-  posts     posts?   @relation(fields: [PostId], references: [id], map: "postcomments_ibfk_1")
-  users     users    @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "postcomments_ibfk_2")
+  posts     posts?    @relation(fields: [PostId], references: [id], map: "postcomments_ibfk_1")
+  users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "postcomments_ibfk_2")
 
   @@index([PostId], map: "PostId")
   @@index([UserId], map: "UserId")
 }
 
 model postlikes {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime? @db.DateTime(0) @default(now())
-  updatedAt DateTime? @db.DateTime(0) @default(now())
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
   PostId    Int?
   UserId    Int
-  posts     posts?   @relation(fields: [PostId], references: [id], map: "postlikes_ibfk_1")
-  users     users    @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "postlikes_ibfk_2")
+  posts     posts?    @relation(fields: [PostId], references: [id], map: "postlikes_ibfk_1")
+  users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "postlikes_ibfk_2")
 
   @@index([PostId], map: "PostId")
   @@index([UserId], map: "UserId")
@@ -134,8 +184,8 @@ model posts {
   slug           String           @db.VarChar(255)
   html_content   String           @db.LongText
   status         posts_status     @default(DRAFT)
-  createdAt      DateTime?         @db.DateTime(0) @default(now())
-  updatedAt      DateTime?         @db.DateTime(0) @default(now())
+  createdAt      DateTime?        @default(now()) @db.DateTime(0)
+  updatedAt      DateTime?        @default(now()) @db.DateTime(0)
   BlogId         Int
   UserId         Int
   blogs          blogs            @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "posts_ibfk_1")
@@ -151,8 +201,8 @@ model posts {
 model referrals {
   id        Int             @id @default(autoincrement())
   type      referrals_type?
-  createdAt DateTime?        @db.DateTime(0) @default(now())
-  updatedAt DateTime?        @db.DateTime(0) @default(now())
+  createdAt DateTime?       @default(now()) @db.DateTime(0)
+  updatedAt DateTime?       @default(now()) @db.DateTime(0)
   BlogId    Int?
   UserId    Int
   blogs     blogs?          @relation(fields: [BlogId], references: [id], map: "referrals_ibfk_1")
@@ -163,11 +213,11 @@ model referrals {
 }
 
 model secretkeys {
-  id        String   @id @db.Char(36)
-  createdAt DateTime? @db.DateTime(0) @default(now())
-  updatedAt DateTime? @db.DateTime(0) @default(now())
+  id        String    @id @db.Char(36)
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
   BlogId    Int
-  blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "secretkeys_ibfk_1")
+  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "secretkeys_ibfk_1")
 
   @@index([BlogId], map: "BlogId")
 }
@@ -177,19 +227,19 @@ model publickeys {
   createdAt DateTime? @db.DateTime(0) @default(now())
   updatedAt DateTime? @db.DateTime(0) @default(now())
   BlogId    Int
-  blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "publickeys_ibfk_1")
+  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "publickeys_ibfk_1")
 
   @@index([BlogId], map: "BlogId")
 }
 
 model teammembers {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime? @db.DateTime(0) @default(now())
-  updatedAt DateTime? @db.DateTime(0) @default(now())
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  updatedAt DateTime? @default(now()) @db.DateTime(0)
   UserId    Int
   BlogId    Int
-  blogs     blogs    @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "teammembers_ibfk_2")
-  users     users    @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "teammembers_ibfk_1")
+  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "teammembers_ibfk_2")
+  users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "teammembers_ibfk_1")
 
   @@index([BlogId], map: "BlogId")
   @@index([UserId], map: "UserId")
@@ -202,8 +252,8 @@ model users {
   first_name   String         @db.VarChar(255)
   last_name    String         @db.VarChar(255)
   isGuest      Boolean
-  createdAt    DateTime?       @db.DateTime(0) @default(now())
-  updatedAt    DateTime?       @db.DateTime(0) @default(now())
+  createdAt    DateTime?      @default(now()) @db.DateTime(0)
+  updatedAt    DateTime?      @default(now()) @db.DateTime(0)
   blogs        blogs[]
   pages        pages[]
   postcomments postcomments[]
@@ -214,6 +264,7 @@ model users {
 }
 
 enum posts_status {
+  ARCHIVED
   DRAFT
   PUBLISHED
   UNPUBLISHED

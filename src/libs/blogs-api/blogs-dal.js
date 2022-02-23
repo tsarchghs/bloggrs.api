@@ -3,6 +3,16 @@ const prisma = require("../../prisma");
 const {
   findAll: findAllBlogPostCategories,
 } = require("../blogpostcategories-dal");
+const { getBlocks, setBlocks } = require("../blocks-dal");
+const { transformPage } = require("../pages-api/pages-dal");
+
+
+const transformBlog = async blog => {
+  // console.log({ blog },222)
+  // blog = JSON.parse(JSON.stringify(blog));
+  blog.blocks = await getBlocks({ BlogId: blog.id })
+  return blog;
+}
 
 module.exports = {
   getBlogHeaderWidetData: async BlogId => {
@@ -10,9 +20,18 @@ module.exports = {
     const pages = await prisma.pages.findMany({ where: { BlogId }})
     const blog = await prisma.blogs.findUnique({ where: { id: BlogId }});
     await pages;await blog;
+    await transformBlog(blog);
     return { blog, pages }
   },
-  findByPkOr404: (pk) => prisma.blogs.findUnique({ where: { id: Number(pk) }}),
+  findByPkOr404: async (pk) => {
+    const blog = await prisma.blogs.findUnique({ where: { id: Number(pk) }})
+    return await transformBlog(blog);
+  },
+  findBySlug: async (slug) => {
+    const blog = await prisma.blogs.findUnique({ where: { slug }}) 
+    await transformBlog(blog);
+    return blog; 
+  },
   findAll: async ({ page = 1, pageSize = 10 }) => {
     page = Number(page)
     pageSize = Number(pageSize)
@@ -21,22 +40,36 @@ module.exports = {
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
-    return await prisma.blogs.findMany({
+    const blogs = await prisma.blogs.findMany({
       where,
       skip: (page - 1) & page,
       take: pageSize,
     });
+    for (let blog of blogs) {
+      await transformBlog(blog);
+    }
+    return blogs;
   },
-  createBlog: async ({ name, description, logo_url, UserId, BlogCategoryId }) =>
-    await prisma.blogs.create({
+  createBlog: async ({ name, slug, description, logo_url, UserId, BlogCategoryId, blocks }) => {
+    console.log({
+      name, slug,
+      description,
+      logo_url,
+      UserId, 
+      BlogCategoryId,
+    })
+    const blog = await prisma.blogs.create({
       data: {
         name,
+        slug,
         description,
         logo_url,
         UserId, 
         BlogCategoryId,
       }
-    }),
+    })
+    return blog;
+  },
   updateBlog: async ({ pk, data }) => {
     let keys = Object.keys(data);
     let blog = await prisma.blogs.findByPkOr404(pk);
@@ -79,14 +112,16 @@ module.exports = {
   },
   getBlogPages: async (BlogId, { page = 1, pageSize = 10 }) => {
     BlogId = Number(BlogId)
-    page = Number(BlogId)
+    page = Number(page)
     pageSize = Number(pageSize)
     const pages = await prisma.pages.findMany({
       where: { BlogId },
       skip: (page - 1) & page,
       take: pageSize,
     })
-    return pages;
+    return await Promise.all(
+      pages.map(page => transformPage(page))
+    )
   },
   likeBlogPostHandler: async ({ PostId, UserId, action }) => {
     PostId = Number(PostId)

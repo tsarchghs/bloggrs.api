@@ -1,10 +1,31 @@
 const prisma = require("../../prisma");
+const { convert } = require('html-to-text');
+const { ErrorHandler } = require("../../utils/error");
+
+function truncate(source, size) {
+  return source.length > size ? source.slice(0, size - 1) + "…" : source;
+}
+
+const getPostContentText = post => truncate(convert(post.html_content), 450);
 
 module.exports = {
-  findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10 } = {}) => {
+  findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10, categories, status } = {}) => {
     const where = {
       BlogId: Number(BlogId),
     };
+    if (status) where.status = { equals: status }
+    if (categories) {
+      categories = categories.split(",");
+      where.postcategories = {
+          some: {
+              categories: {
+                  slug: {
+                      in: categories
+                  }
+              }
+          }
+      }
+  }
     // if (query) where[Sequelize.Op.or] = [
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
@@ -32,7 +53,7 @@ module.exports = {
         likes_count,
         comments_count,
         liked,
-        context: { PostId: post.id, UserId }
+        content_text: getPostContentText(post)
       };
       post.meta = meta;
       return post;
@@ -40,7 +61,14 @@ module.exports = {
     return Promise.all(posts);
   },
   findPost: async (PostId) => {
-    let post = await prisma.posts.findUnique({ where: { id: PostId }});
+    let where = {};
+    const is_ID = !isNaN(Number(PostId));
+    
+    if (is_ID) where.id = Number(PostId)
+    else where.slug = PostId
+
+    let post = await prisma.posts.findFirst({ where });
+    if (!post) throw new ErrorHandler.get404("Post");
     post = JSON.parse(JSON.stringify(post));
     const likes_count = await prisma.postlikes.count({
       where: { PostId: post.id },
@@ -51,6 +79,7 @@ module.exports = {
     const meta = {
       likes_count,
       comments_count,
+      content_text: getPostContentText(post)
     };
     post.meta = meta;
     return post;

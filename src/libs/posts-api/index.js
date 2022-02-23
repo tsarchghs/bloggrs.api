@@ -11,13 +11,35 @@ const { ErrorHandler } = require("../../utils/error");
 const yup = require("yup");
 const { param_id, id } = require("../utils/validations");
 
+
+yup.addMethod(yup.array, 'oneOfSchemas', function(schemas) {
+    return this.test(
+      'one-of-schemas',
+      'Not all items in ${path} match one of the allowed schemas',
+      items => items.every(item => {
+        return schemas.some(schema => schema.isValidSync(item, {strict: true}))
+      })
+    )
+  })
+
 app.use(allowCrossDomain)
 
 const PostFields = {
     title: yup.string(),
     slug: yup.string(),
     html_content: yup.string(),
-    BlogId: id
+    BlogId: id,
+    categories: yup.array().oneOfSchemas([
+        yup.object().shape({
+            title: yup.string().required()
+        }),
+        yup.object().shape({
+            slug: yup.string().required()
+        }),
+        yup.object().shape({
+            id: id.required()
+        }),
+    ])
     // status: yup.string().default("")
 }
 const PostFieldKeys = Object.keys(PostFields)
@@ -29,7 +51,8 @@ app.get("/posts", [
             page: yup.number().integer().positive().default(1),
             pageSize: yup.number().integer().positive().default(10),
             status: yup.string(),
-            query: yup.string()
+            query: yup.string(),
+            categories: yup.string()
         })
     }))
 ], async (req,res) => {

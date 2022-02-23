@@ -23,7 +23,13 @@ const {
   generatePublicKey,
   getBlogHeaderWidetData,
   likeBlogPostHandler,
+  findBySlug,
 } = require("./blogs-dal");
+
+const {
+  findAll: findComments
+} = require("../postcomments-api/postcomments-dal");
+
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -32,13 +38,16 @@ const validateCredentials = require("./validateCredentials");
 const createBlogToken = require("../utils/createBlogToken");
 const { findPostsForBlog, findPost } = require("../posts-dal");
 const publickeysDal = require("../publickeys-api/publickeys-dal");
+const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
 
 app.use(allowCrossDomain);
+
 
 const BlogFields = {
   name: yup.string(),
   description: yup.string(),
   logo_url: yup.string(),
+  slug: yup.string(),
   BlogCategoryId: id,
 };
 const BlogFieldKeys = Object.keys(BlogFields);
@@ -95,6 +104,20 @@ app.post(
     });
   }
 );
+
+app.get("/blogs/:slug/api_key", async (req, res) => {
+  const { slug } = req.params;
+  const blog = await findBySlug(slug);
+  const key = await publickeysDal.findOne({
+    BlogId: blog.id
+  });
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "slug not valid"])
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
 
 app.post("/blogs/api_key", [
   validateRequest(
@@ -199,6 +222,28 @@ app.get("/blogs/:blog_id/pages",[
   });
 });
 
+app.get("/blogs/:blog_id/pages/:slug", [
+  validateRequest(
+    yup.object().shape({
+      params: yup.object().shape({
+        blog_id: param_id.required(),
+        slug: yup.string().required()
+      })
+    })
+  )
+], async (req,res) => {
+  const {
+    blog_id: BlogId,
+    slug 
+  } = req.params;
+  const page = await findByBlogSlugOr404({ BlogId, slug });
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { page }
+  })
+})
+
 app.get(
   "/blogs/:blog_id/posts",
   [
@@ -231,11 +276,12 @@ app.get(
       yup.object().shape({
         params: yup.object().shape({
           blog_id: param_id.required(),
-          post_id: param_id.required(),
+          post_id: yup.string(),
         }),
         query: yup.object().shape({
           page: param_id.default("1"),
           pageSize: param_id.default("10"),
+          categories: yup.string()
         }),
       })
     ),
@@ -246,6 +292,36 @@ app.get(
       code: 200,
       message: "success",
       data: { post },
+    });
+  }
+);
+
+app.get(
+  "/blogs/:blog_id/posts/:post_id/comments",
+  [
+    validateRequest(
+      yup.object().shape({
+        params: yup.object().shape({
+          blog_id: param_id.required(),
+          post_id: yup.string(),
+        }),
+        query: yup.object().shape({
+          page: param_id.default("1"),
+          pageSize: param_id.default("3"),
+        }),
+      })
+    ),
+  ],
+  async (req, res) => {
+    const { post_id: PostId } = req.params;
+    const { page, pageSize } = req.query;
+    const { postcomments: comments, count } = await findComments({ 
+      PostId, page, pageSize
+    });
+    return res.json({
+      code: 200,
+      message: "success",
+      data: { page: Number(page) || 1, pageSize: Number(pageSize) || 3, count, comments },
     });
   }
 );
@@ -327,7 +403,7 @@ app.get(
 const createBlogFields = {};
 BlogFieldKeys.map(
   (key) => {
-    if (key === 'description') return createBlogFields[key]
+    // if (key === 'description') return createBlogFields[key]
     return (createBlogFields[key] = BlogFields[key].required())
   }
 );

@@ -5,6 +5,13 @@ const prisma = require("../../prisma")
 
 module.exports = {
     findByPkOr404: pk => prisma.publickeys.findUnique({where: { id: pk }}),
+    findOne: async ({ BlogId }) => {
+        const where = { BlogId }
+        return await prisma.publickeys.findFirst({
+            where,
+        })
+    },
+
     findAll: async ({ page = 1, pageSize = 10 }) => {
         const where = {}
         // if (query) where[Sequelize.Op.or] = [

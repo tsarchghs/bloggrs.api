@@ -14,14 +14,8 @@ const { param_id, id } = require("../utils/validations");
 app.use(allowCrossDomain)
 
 const PostCommentFields = {
-    contract_type: yup.string().oneOf([
-        "SIGN_CONTRACT", "FACEBOOK_CONTRACT", "YOUTUBE_CONTRACT", "DIGITAL_PLATFORM_CONTRACTS"
-    ]),
-    start_date: yup.date(),
-    end_date: yup.date(),
-    comment: yup.string(),
-    file_url: yup.string(),
-    ClientId: id
+    content: yup.string().min(1),
+    PostId: id,
 }
 const PostCommentFieldKeys = Object.keys(PostCommentFields)
 
@@ -29,18 +23,19 @@ app.get("/postcomments", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
-            page: yup.number().integer().positive().default(1),
-            pageSize: yup.number().integer().positive().default(10),
+            page: param_id.default("1"),
+            pageSize: param_id.default("3"),
             status: yup.string(),
             query: yup.string()
         })
     }))
 ], async (req,res) => {
-    let postcomments = await findAll(req.query); 
+    const { page, pageSize } = req.query;
+    const { postcomments, count } = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { postcomments }
+        data: { count, page, pageSize, postcomments }
     })
 })
 
@@ -63,12 +58,16 @@ app.get("/postcomments/:postcomment_id", [
 const CreatePostCommentFields = {};
 PostCommentFieldKeys.map(key => CreatePostCommentFields[key] = PostCommentFields[key].required());
 app.post("/postcomments",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(CreatePostCommentFields)
+        requestBody: yup.object().shape(PostCommentFields)
     }))
 ], async (req,res) => {
-    let postcomment = await createPostComment(req.body);
+    let { id: UserId } = req.user;
+    let postcomment = await createPostComment({
+        ...req.body,
+        UserId
+    });
     return res.json({
         code: 200,
         message: "success",

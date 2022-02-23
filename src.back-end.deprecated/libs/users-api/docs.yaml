@@ -1,0 +1,250 @@
+schemas:
+  User:
+    required:
+    - id
+    - full_name
+    - birthday
+    - gender
+    - vkb_id
+    - isAdmin
+    - isAdvertiser
+    type: object
+    properties:
+      id:
+        type: integer
+        example: '1'
+      full_name:
+        type: string
+        example: John Doe
+      birthday:
+        type: string
+        format: date-time
+        example: '2016-08-29T09:12:33.001Z'
+      gender:
+        type: string
+        enum:
+        - male
+        - female
+      isAdmin:
+        type: boolean
+      isAdvertiser:
+        type: boolean
+
+paths:
+  "/users":
+    get:
+      tags:
+      - Users
+      summary: Get all users
+      security:
+      - jwt_auth: []
+      responses:
+        '200':
+          description: Returns list of users
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        users:
+                          type: array
+                          items:
+                            "$ref": "#/components/schemas/User"
+    post:
+      tags:
+      - Users
+      summary: Create user
+      description: Adds an user to the system
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - first_name
+              - last_name
+              - email
+              - password
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Successful operation, created user, token received
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          "$ref": "#/components/schemas/User"
+                        token:
+                          type: string
+                          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImldhdCI6MTU5OTQ4MTQ2OH0.U9eHm-8zuCaGa776rUViOa33l22lSSRNctkfgstIz5k
+        '403':
+          description: Validation error
+  "/users/unrestricted":
+    post:
+      tags:
+      - Users
+      summary: Create user with full access
+      security:
+      - jwt_auth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - first_name
+              - last_name
+              - email
+              - password
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Successful operation, created user, token received
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          "$ref": "#/components/schemas/User"
+        '403':
+          description: Validation error
+
+  "/users/{user_id}":
+    get:
+      tags:
+      - Users
+      summary: Get specific user
+      parameters:
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      security:
+      - jwt_auth: []
+      responses:
+        '200':
+          description: Returns a specific user
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          "$ref": "#/components/schemas/User"
+    patch:
+      tags:
+      - Users
+      summary: Update user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - first_name
+              - last_name
+              - email
+              - password
+              properties:
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      parameters:
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      security:
+      - jwt_auth: []
+      responses:
+        '200':
+          description: Returns a specific user
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          "$ref": "#/components/schemas/User"
+    delete:
+      tags:
+      - Users
+      summary: Delete user
+      parameters:
+      - name: user_id
+        in: path
+        description: User ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+      security:
+      - jwt_auth: []
+      responses:
+        '204':
+          description: Returns success 204 
+          content:
+            application/json:
+              schema:
+                allOf:
+                - "$ref": "#/components/schemas/ApiResponse"
+                - type: object
+                  properties:
+                    code:
+                      type: integer
+                      example: 204
