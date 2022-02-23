@@ -1,4 +1,5 @@
 
+const { randomUUID } = require("crypto");
 const prisma = require("../../prisma")
 
 
@@ -19,7 +20,7 @@ module.exports = {
     createPublicKey: async ({ 
         BlogId
      }) => await prisma.publickeys.create({ 
-        data: { BlogId }
+        data: { BlogId, id: randomUUID() }
       }),
     updatePublicKey: async ({pk,data}) => {
         let keys = Object.keys(data);

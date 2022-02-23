@@ -173,7 +173,7 @@ model secretkeys {
 }
 
 model publickeys {
-  id        String   @id @db.Char(36)
+  id        String   @id @db.Char(36) @default(uuid())
   createdAt DateTime? @db.DateTime(0) @default(now())
   updatedAt DateTime? @db.DateTime(0) @default(now())
   BlogId    Int

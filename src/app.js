@@ -1,5 +1,6 @@
 if (!process.env.DONT_USE_DOTENV) require("dotenv").config();
 
+require('randomuuid') // crypto polyfill
 require("express-async-errors");
 
 // const models = require("./models");
