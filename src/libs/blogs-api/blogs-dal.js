@@ -5,16 +5,29 @@ const {
 } = require("../blogpostcategories-dal");
 const { getBlocks, setBlocks } = require("../blocks-dal");
 const { transformPage } = require("../pages-api/pages-dal");
+const { ErrorHandler } = require("../../utils/error");
+const slugify = require('slugify');
+const publickeysDal = require("../publickeys-api/publickeys-dal");
 
 
 const transformBlog = async blog => {
   // console.log({ blog },222)
   // blog = JSON.parse(JSON.stringify(blog));
   blog.blocks = await getBlocks({ BlogId: blog.id })
+  const key = await publickeysDal.findOne({
+    BlogId: blog.id
+  })
+  blog.public_key = key.id;
   return blog;
+}
+const findByPkOr404 = async (pk) => {
+  const blog = await prisma.blogs.findUnique({ where: { id: Number(pk) }})
+  if (!blog) throw new ErrorHandler.get404("Blog")
+  return await transformBlog(blog);
 }
 
 module.exports = {
+  findByPkOr404,
   getBlogHeaderWidetData: async BlogId => {
     BlogId = Number(BlogId)
     const pages = await prisma.pages.findMany({ where: { BlogId }})
@@ -23,19 +36,17 @@ module.exports = {
     await transformBlog(blog);
     return { blog, pages }
   },
-  findByPkOr404: async (pk) => {
-    const blog = await prisma.blogs.findUnique({ where: { id: Number(pk) }})
-    return await transformBlog(blog);
-  },
+
   findBySlug: async (slug) => {
     const blog = await prisma.blogs.findUnique({ where: { slug }}) 
     await transformBlog(blog);
     return blog; 
   },
-  findAll: async ({ page = 1, pageSize = 10 }) => {
+  findAll: async ({ page = 1, pageSize = 10, UserId }) => {
     page = Number(page)
     pageSize = Number(pageSize)
     const where = {};
+    if (UserId) where.UserId = UserId;
     // if (query) where[Sequelize.Op.or] = [
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
@@ -50,18 +61,25 @@ module.exports = {
     }
     return blogs;
   },
-  createBlog: async ({ name, slug, description, logo_url, UserId, BlogCategoryId, blocks }) => {
+  createBlog: async ({ 
+    name, slug, craftjs_json_state, description,
+    logo_url, UserId, BlogCategoryId, blocks
+  }) => {
     console.log({
       name, slug,
+      craftjs_json_state,
       description,
       logo_url,
-      UserId, 
+      UserId,
       BlogCategoryId,
     })
+    if (!slug) slug = slugify(name)
+    if (!description) description = "not set";
     const blog = await prisma.blogs.create({
       data: {
         name,
         slug,
+        craftjs_json_state,
         description,
         logo_url,
         UserId, 
@@ -71,19 +89,24 @@ module.exports = {
     return blog;
   },
   updateBlog: async ({ pk, data }) => {
-    let keys = Object.keys(data);
-    let blog = await prisma.blogs.findByPkOr404(pk);
-    for (let key of keys) {
-      blog[key] = data[key];
-    }
-    await blog.save();
+    // let keys = Object.keys(data);
+    // let blog = await findByPkOr404(pk);
+    // for (let key of keys) {
+    //   blog[key] = data[key];
+    // }
+    // // await blog.save();
+    // const { id: blog_id } = blog;
+    const blog = await prisma.blogs.update({
+      where: { id: Number(pk) },
+      data
+    })
     return blog;
   },
   deleteBlog: async (pk) =>
-    await (await await prisma.blogs.findByPkOr404(pk)).destroy(),
+    await (await await findByPkOr404(pk)).destroy(),
   generateSecret: async (BlogId) => {
     const secretKey = await prisma.secretkeys.create({
-      data: { id: randomUUID() ,BlogId: Number(BlogId) },
+      data: { id: randomUUID(), BlogId: Number(BlogId) },
     });
     return secretKey.id;
   },

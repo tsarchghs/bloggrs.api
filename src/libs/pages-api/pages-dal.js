@@ -6,7 +6,7 @@ const { setBlocks, getBlocks } = require("../blocks-dal");
 const transformPage = async page => {
     // console.log({ blog },222)
     // page = JSON.parse(JSON.stringify(page));
-    page.blocks = await getBlocks({ PageId: page.id })
+    // page.blocks = await getBlocks({ PageId: page.id })
     return page;
 }
   
@@ -28,6 +28,16 @@ const findByBlogSlugOr404 = async ({ BlogId, slug }) => {
 module.exports = {
     transformPage,
     findByPkOr404,
+    findByBlogId: async ( BlogId ) => {
+        const pages = await prisma.pages.findMany({
+            where: {
+                BlogId
+            }
+        })
+        return await Promise.all(
+            pages.map(page => transformPage(page))
+        );
+    },
     findByBlogSlugOr404,
     findAll: async ({ page = 1, pageSize = 10 }) => {
         const where = {}
@@ -49,7 +59,7 @@ module.exports = {
         const page = await prisma.pages.create({ 
             data: { name, slug, BlogId, UserId }
         })
-        if (blocks) await setBlocks({ PageId: page.id, blocks })
+        // if (blocks) await setBlocks({ PageId: page.id, blocks })
         return transformPage(page);
     },
     updatePage: async ({pk,data}) => {

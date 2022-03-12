@@ -46,6 +46,7 @@ model blogs {
   name               String               @db.VarChar(255)
   slug               String               @unique(map: "slug") @db.VarChar(255)
   description        String               @db.LongText
+  craftjs_json_state String?               @db.LongText
   logo_url           String               @db.VarChar(255)
   createdAt          DateTime?            @default(now()) @db.DateTime(0)
   updatedAt          DateTime?            @default(now()) @db.DateTime(0)
@@ -127,13 +128,14 @@ model pages {
   id        Int       @id @default(autoincrement())
   name      String    @db.VarChar(255)
   slug      String    @db.VarChar(255)
+  craftjs_json_state  String?               @db.LongText
   createdAt DateTime? @default(now()) @db.DateTime(0)
   updatedAt DateTime? @default(now()) @db.DateTime(0)
   BlogId    Int
   UserId    Int
   blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "pages_ibfk_1")
   users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "pages_ibfk_2")
-
+  
   @@index([BlogId], map: "BlogId")
   @@index([UserId], map: "UserId")
   blocks blocks[]

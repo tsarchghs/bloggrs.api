@@ -39,6 +39,7 @@ const createBlogToken = require("../utils/createBlogToken");
 const { findPostsForBlog, findPost } = require("../posts-dal");
 const publickeysDal = require("../publickeys-api/publickeys-dal");
 const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
+const pagesDal = require("../pages-api/pages-dal");
 
 app.use(allowCrossDomain);
 
@@ -49,6 +50,7 @@ const BlogFields = {
   logo_url: yup.string(),
   slug: yup.string(),
   BlogCategoryId: id,
+  craftjs_json_state: yup.string()
 };
 const BlogFieldKeys = Object.keys(BlogFields);
 
@@ -119,6 +121,26 @@ app.get("/blogs/:slug/api_key", async (req, res) => {
   })
 });
 
+app.get("/blogs/api_key/:api_key", [
+  validateRequest(
+    yup.object().shape({
+      params: yup.object().shape({
+        api_key: yup.string().required()
+      })
+    })
+  )
+], async (req, res) => {
+  const key = await publickeysDal.findByPkOr404(req.params.api_key);
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
+  const blog = await findByPkOr404(key.BlogId);
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
+
+
 app.post("/blogs/api_key", [
   validateRequest(
     yup.object().shape({
@@ -131,6 +153,7 @@ app.post("/blogs/api_key", [
   const key = await publickeysDal.findByPkOr404(req.body.api_key);
   if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
   const blog = await findByPkOr404(key.BlogId);
+  blog.pages = await pagesDal.findByBlogId(blog.id);
   return res.json({
     code: 200,
     message: "success",
@@ -356,8 +379,8 @@ app.post(
 app.get(
   "/blogs",
   [
-    jwtRequired,
-    passUserFromJWT,
+    // jwtRequired,
+    // passUserFromJWT,
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
@@ -374,6 +397,24 @@ app.get(
     return res.json({
       message: "success",
       code: 200,
+      data: { blogs },
+    });
+  }
+);
+
+
+app.get(
+  "/me/blogs",
+  [
+    jwtRequired,
+    passUserFromJWT
+  ],
+  async (req, res) => {
+    const { UserId } = req.user;
+    const blogs = await findAll({ UserId });
+    return res.json({
+      code: 200,
+      message: "sucess",
       data: { blogs },
     });
   }
@@ -403,7 +444,8 @@ app.get(
 const createBlogFields = {};
 BlogFieldKeys.map(
   (key) => {
-    // if (key === 'description') return createBlogFields[key]
+    if (key === 'description') return createBlogFields[key]
+    if (key === 'slug') return createBlogFields[key]
     return (createBlogFields[key] = BlogFields[key].required())
   }
 );
