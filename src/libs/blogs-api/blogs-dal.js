@@ -8,6 +8,7 @@ const { transformPage } = require("../pages-api/pages-dal");
 const { ErrorHandler } = require("../../utils/error");
 const slugify = require('slugify');
 const publickeysDal = require("../publickeys-api/publickeys-dal");
+const pagesDal = require("../pages-api/pages-dal");
 
 
 const transformBlog = async blog => {
@@ -18,6 +19,7 @@ const transformBlog = async blog => {
     BlogId: blog.id
   })
   blog.public_key = key.id;
+  blog.pages = await pagesDal.findAll({ BlogId: blog.id });
   return blog;
 }
 const findByPkOr404 = async (pk) => {
@@ -26,7 +28,56 @@ const findByPkOr404 = async (pk) => {
   return await transformBlog(blog);
 }
 
+const getBlogByApiKey = async apikey => {
+  const publickey = await publickeysDal.findOne(
+    { id: apikey } 
+  )
+  if (!publickey) throw new ErrorHandler.gett404("Blog");
+  const { BlogId } = publickey;
+  const blog = await prisma.blogs.findUnique({
+    where: { id: BlogId }
+  })
+  return blog;
+}
+
+const updateBlog = async ({ pk, data }) => {
+  // let keys = Object.keys(data);
+  // let blog = await findByPkOr404(pk);
+  // for (let key of keys) {
+  //   blog[key] = data[key];
+  // }
+  // // await blog.save();
+  // const { id: blog_id } = blog;
+  const blog = await prisma.blogs.update({
+    where: { id: Number(pk) },
+    data
+  })
+  return blog;
+}
+
 module.exports = {
+  getBlogByApiKey,
+  update_page_state: async ({ apikey, page_id, craftjs_json_state }) => {
+    console.log({ apikey })
+    const blog = await getBlogByApiKey(apikey)
+    console.log(111)
+    if (page_id === "index") {
+      await updateBlog({ pk: blog.id, data: { craftjs_json_state }})
+      blog.craftjs_json_state = craftjs_json_state;
+      return blog;
+    } else {
+      const page = await pagesDal.findByPkOr404(page_id);
+      if ( page.BlogId !== blog.id ) throw new ErrorHandler(401, "No access to page");
+      await pagesDal.updatePage({
+        pk: page.id,
+        data: {
+          craftjs_json_state
+        }
+      })
+      page.craftjs_json_state = craftjs_json_state;
+      return page;
+    }
+  },
   findByPkOr404,
   getBlogHeaderWidetData: async BlogId => {
     BlogId = Number(BlogId)
@@ -88,20 +139,7 @@ module.exports = {
     })
     return blog;
   },
-  updateBlog: async ({ pk, data }) => {
-    // let keys = Object.keys(data);
-    // let blog = await findByPkOr404(pk);
-    // for (let key of keys) {
-    //   blog[key] = data[key];
-    // }
-    // // await blog.save();
-    // const { id: blog_id } = blog;
-    const blog = await prisma.blogs.update({
-      where: { id: Number(pk) },
-      data
-    })
-    return blog;
-  },
+  updateBlog,
   deleteBlog: async (pk) =>
     await (await await findByPkOr404(pk)).destroy(),
   generateSecret: async (BlogId) => {

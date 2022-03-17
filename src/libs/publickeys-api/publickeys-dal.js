@@ -4,11 +4,10 @@ const prisma = require("../../prisma")
 
 
 module.exports = {
-    findByPkOr404: pk => prisma.publickeys.findUnique({where: { id: pk }}),
-    findOne: async ({ BlogId }) => {
-        const where = { BlogId }
+    findUnique: pk => prisma.publickeys.findUnique({where: { id: pk }}),
+    findOne: async (where) => {
         return await prisma.publickeys.findFirst({
-            where,
+            where
         })
     },
 
@@ -31,12 +30,12 @@ module.exports = {
       }),
     updatePublicKey: async ({pk,data}) => {
         let keys = Object.keys(data);
-        let publicKey = await prisma.publickeys.findByPkOr404(pk);
+        let publicKey = await prisma.publickeys.findUnique({ where: { id: pk } });
         for (let key of keys){
             publicKey[key] = data[key]
         }
         await publicKey.save();
         return publicKey;
     },
-    deletePublicKey: async (pk) => await (await (await prisma.publickeys.findByPkOr404(pk))).destroy()
+    deletePublicKey: async (pk) => await (await (await prisma.publickeys.findUnique({ where: { id: pk } }))).destroy()
 }

@@ -39,8 +39,9 @@ module.exports = {
         );
     },
     findByBlogSlugOr404,
-    findAll: async ({ page = 1, pageSize = 10 }) => {
+    findAll: async ({ page = 1, pageSize = 10, BlogId }) => {
         const where = {}
+        if (BlogId) where.BlogId = BlogId;
         // if (query) where[Sequelize.Op.or] = [
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }

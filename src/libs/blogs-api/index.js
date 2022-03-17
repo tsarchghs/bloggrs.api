@@ -24,6 +24,7 @@ const {
   getBlogHeaderWidetData,
   likeBlogPostHandler,
   findBySlug,
+  update_page_state,
 } = require("./blogs-dal");
 
 const {
@@ -130,7 +131,7 @@ app.get("/blogs/api_key/:api_key", [
     })
   )
 ], async (req, res) => {
-  const key = await publickeysDal.findByPkOr404(req.params.api_key);
+  const key = await publickeysDal.findUnique(req.params.api_key);
   if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
   const blog = await findByPkOr404(key.BlogId);
   return res.json({
@@ -150,7 +151,7 @@ app.post("/blogs/api_key", [
     })
   )
 ], async (req, res) => {
-  const key = await publickeysDal.findByPkOr404(req.body.api_key);
+  const key = await publickeysDal.findUnique(req.body.api_key);
   if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
   const blog = await findByPkOr404(key.BlogId);
   blog.pages = await pagesDal.findByBlogId(blog.id);
@@ -182,6 +183,32 @@ app.post(
     return res.json(getResponse(user));
   }
 );
+
+app.patch("/blogs/:apikey/update_page_state/:page_id",
+  validateRequest(
+    yup.object().shape({
+      requestBody: yup.object().shape({
+        craftjs_json_state: yup.string().required()
+      }),
+      params: yup.object().shape({
+        apikey: yup.string().required(),
+        page_id: yup.string().required()
+      })
+    })
+  ),
+  async (req, res) => {
+    const { apikey, page_id } = req.params;
+    console.log({ apikey, page_id })
+    const { craftjs_json_state }  = req.body;
+    await update_page_state({
+      apikey, page_id, craftjs_json_state
+    })
+    return res.json({
+      code: 201,
+      message: "success"
+    })
+  }
+)
 
 app.get("/blogs/:blog_id/categories",[
   validateRequest(
