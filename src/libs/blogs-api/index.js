@@ -473,6 +473,7 @@ BlogFieldKeys.map(
   (key) => {
     if (key === 'description') return createBlogFields[key]
     if (key === 'slug') return createBlogFields[key]
+    if (key === 'craftjs_json_state') return createBlogFields[key]
     return (createBlogFields[key] = BlogFields[key].required())
   }
 );
