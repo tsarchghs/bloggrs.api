@@ -130,7 +130,7 @@ module.exports = {
       data: {
         name,
         slug,
-        craftjs_json_state,
+        craftjs_json_state: craftjs_json_state || "{}",
         description,
         logo_url,
         UserId, 
