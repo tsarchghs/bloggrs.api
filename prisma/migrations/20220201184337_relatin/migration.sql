@@ -1,2 +1,0 @@
--- AddForeignKey
-ALTER TABLE `blocks` ADD CONSTRAINT `blocks_BlogId_fkey` FOREIGN KEY (`BlogId`) REFERENCES `blogs`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
