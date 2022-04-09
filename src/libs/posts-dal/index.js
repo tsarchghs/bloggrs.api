@@ -6,7 +6,14 @@ function truncate(source, size) {
   return source.length > size ? source.slice(0, size - 1) + "…" : source;
 }
 
-const getPostContentText = post => truncate(convert(post.html_content), 450);
+const getPostContentText = post => {
+  try { JSON.parse(post.html_content) } catch(err) { console.log(err.toString()); return ""; }
+  const parsed = JSON.parse(post.html_content);
+  const paragraph = parsed.blocks.find(b => b.type == "paragraph");
+  const { text } = paragraph.data;
+  // console.log({ text, paragraph })
+  return truncate(convert(text), 450);
+}
 
 module.exports = {
   findPostsForBlog: async (BlogId, UserId, { page = 1, pageSize = 10, categories, status } = {}) => {
