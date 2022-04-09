@@ -106,13 +106,16 @@ module.exports = {
         let keys = Object.keys(data);
         const { categories, ...args } = data;
 
-        const categories_result = await prisma.categories.findMany({
-            where: {
-                OR: categories.map(category => ({
-                    ...category
-                }))
-            }
-        })
+        let categories_result;
+        if (categories) {
+            categories_result = await prisma.categories.findMany({
+                where: {
+                    OR: categories.map(category => ({
+                        ...category
+                    }))
+                }
+            })
+        }
         for (let x=0; x < categories.length; x++) {
             let category = categories[x];
             let category_result = categories_result[x]
@@ -125,20 +128,22 @@ module.exports = {
             where: { id: Number(pk) },
             data: args
         })
-        await prisma.postcategories.deleteMany({
-            where: {
-                PostId: post.id            
-            }
-        })
-        const postcategories = categories_result.map(async category => (
-            await prisma.postcategories.create({
-                data: {
-                    CategoryId: category.id,
+        if (categories) {
+            await prisma.postcategories.deleteMany({
+                where: {
                     PostId: post.id
                 }
-            }).catch(() => {}) // already exists
-        ))
-        await Promise.all(postcategories);
+            })
+            const postcategories = categories_result.map(async category => (
+                await prisma.postcategories.create({
+                    data: {
+                        CategoryId: category.id,
+                        PostId: post.id
+                    }
+                }).catch(() => {}) // already exists
+            ))
+            await Promise.all(postcategories);
+        }
         return post;
     },
     deletePost: async (pk) => await prisma.posts.delete({ where: { id: Number(pk) } })
