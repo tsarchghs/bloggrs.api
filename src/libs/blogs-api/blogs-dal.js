@@ -6,7 +6,7 @@ const {
 const { getBlocks, setBlocks } = require("../blocks-dal");
 const { transformPage } = require("../pages-api/pages-dal");
 const { ErrorHandler } = require("../../utils/error");
-const slugify = require('slugify');
+const slugify = require('slugify'); 
 const publickeysDal = require("../publickeys-api/publickeys-dal");
 const pagesDal = require("../pages-api/pages-dal");
 
@@ -14,6 +14,7 @@ const pagesDal = require("../pages-api/pages-dal");
 const transformBlog = async blog => {
   // console.log({ blog },222)
   // blog = JSON.parse(JSON.stringify(blog));
+  console.log(blog)
   blog.blocks = await getBlocks({ BlogId: blog.id })
   const key = await publickeysDal.findOne({
     BlogId: blog.id
@@ -34,6 +35,7 @@ const getBlogByApiKey = async apikey => {
   )
   if (!publickey) throw new ErrorHandler.gett404("Blog");
   const { BlogId } = publickey;
+  console.log({ BlogId })
   const blog = await prisma.blogs.findUnique({
     where: { id: BlogId }
   })

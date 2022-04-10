@@ -11,7 +11,6 @@ const getPostContentText = post => {
   const parsed = JSON.parse(post.html_content);
   const paragraph = parsed.blocks.find(b => b.type == "paragraph");
   const { text } = paragraph.data;
-  // console.log({ text, paragraph })
   return truncate(convert(text), 450);
 }
 
