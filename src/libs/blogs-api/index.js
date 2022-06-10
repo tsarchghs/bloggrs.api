@@ -462,7 +462,7 @@ app.get(
     const blog = await findByPkOr404(req.params.blog_id);
     const key = await publickeysDal.findOne({
       BlogId: blog.id
-    });  
+    });
     return res.json({
       code: 200,
       message: "sucess",

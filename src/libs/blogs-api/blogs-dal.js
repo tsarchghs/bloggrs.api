@@ -16,9 +16,13 @@ const transformBlog = async blog => {
   // blog = JSON.parse(JSON.stringify(blog));
   console.log(blog)
   blog.blocks = await getBlocks({ BlogId: blog.id })
-  const key = await publickeysDal.findOne({
+  let key = await publickeysDal.findOne({
     BlogId: blog.id
   })
+  if (!key) {
+    key = await publickeysDal.createPublicKey({ BlogId: blog.id });
+  }
+
   blog.public_key = key.id;
   blog.pages = await pagesDal.findAll({ BlogId: blog.id });
   return blog;
