@@ -17,10 +17,10 @@ module.exports = {
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
         // ]
-        return await prisma.publickeys.findAll({
+        return await prisma.publickeys.findMany({
             where,
-            offset: (page - 1) & page,
-            limit: pageSize,
+            // offset: (page - 1) & page,
+            // limit: pageSize,
         })
     },
     createPublicKey: async ({ 

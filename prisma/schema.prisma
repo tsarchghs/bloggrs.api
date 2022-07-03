@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgres"
+  provider = "mysql"
   url      = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
@@ -47,7 +47,7 @@ model blogs {
   name               String               @db.VarChar(255)
   slug               String               @unique() @db.VarChar(255)
   description        String               @db.Text
-  craftjs_json_state String?               @db.Text
+  craftjs_json_state String?              @db.Text
   logo_url           String               @db.VarChar(255)
   createdAt          DateTime?            @default(now())
   updatedAt          DateTime?            @default(now())

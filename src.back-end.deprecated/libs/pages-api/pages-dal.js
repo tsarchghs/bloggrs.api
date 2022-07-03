@@ -10,7 +10,7 @@ module.exports = {
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
         // ]
-        return await Page.findAll({
+        return await Page.findMany({
             where,
             offset: (page - 1) & page,
             limit: pageSize,
