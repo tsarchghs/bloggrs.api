@@ -20,13 +20,15 @@ const PostCommentFields = {
 const PostCommentFieldKeys = Object.keys(PostCommentFields)
 
 app.get("/postcomments", [
-    jwtRequired, passUserFromJWT,
+    // jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: param_id.default("1"),
             pageSize: param_id.default("3"),
             status: yup.string(),
-            query: yup.string()
+            query: yup.string(),
+            PostId: param_id,
+            BlogId: param_id
         })
     }))
 ], async (req,res) => {
