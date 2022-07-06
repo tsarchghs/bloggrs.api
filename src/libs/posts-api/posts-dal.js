@@ -3,10 +3,25 @@ const { htmlToText } = require("html-to-text");
 const { post } = require(".");
 const prisma = require("../../prisma");
 const { ErrorHandler } = require("../../utils/error");
+const { parse: html_parser } = require("node-html-parser");
 
-module.exports = {
+const find_first_img_src = (blocks) => {
+    for (let x = 0; x < blocks.length; x++) {
+        const block = blocks[x];
+        const is_img = block.type === "image"
+        if (is_img) return block.data.file.url;
+        const has_blocks = block.blocks && block.blocks.length;
+        if (has_blocks) {
+            const found = find_first_img(child.blocks);
+            return found;
+        }
+    }
+}
+
+
+const functions = {
     findByPkOr404: async pk => {
-        const post = prisma.posts.findUnique({ 
+        const post = await prisma.posts.findUnique({ 
             where: { id: Number(pk) },
             include: {
                 "postcategories": true
@@ -148,3 +163,31 @@ module.exports = {
     },
     deletePost: async (pk) => await prisma.posts.delete({ where: { id: Number(pk) } })
 }
+
+const export_functions = {};
+
+const insert_thumbnail_url = post => {
+    try {
+        const parsed = JSON.parse(post.html_content)
+        const src = find_first_img_src(parsed.blocks);
+        post.thumbnail_url = src; 
+      } catch( err ) {
+        console.log(err);
+        post.thumbnail_url = null;
+      }
+      return post;
+}
+Object.keys(functions).forEach(key => {
+    const func = functions[key];
+    export_functions[key] = async (...args) => {
+        const value = await func(...args);
+        console.log({ value })
+        const isArray = Array.isArray(value);
+        if (isArray) {
+            return value.map(insert_thumbnail_url);
+        }
+        return insert_thumbnail_url(value);
+    }
+})
+
+module.exports = export_functions
