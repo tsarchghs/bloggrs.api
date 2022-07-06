@@ -160,11 +160,11 @@ module.exports = {
     });
     return publickey.id;
   },
-  getBlogCategories: async (BlogId, { page = 1, pageSize = 10 }) => {
+  getBlogCategories: async (BlogId, { query, page = 1, pageSize = 10 }) => {
     BlogId = Number(BlogId)
     page = Number(page)
     pageSize = Number(pageSize)
-    const blogpostcategories = await findAllBlogPostCategories({ BlogId, page, pageSize });
+    const blogpostcategories = await findAllBlogPostCategories({ BlogId, page, pageSize, query });
     let categories = blogpostcategories.map((bpc) => bpc.categories);
     console.log(categories,'categories')
     categories = categories.map(async (ctg) => {
