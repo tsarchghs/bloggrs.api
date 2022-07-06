@@ -27,6 +27,7 @@ const transformBlog = async blog => {
   blog.pages = await pagesDal.findAll({ BlogId: blog.id });
   return blog;
 }
+
 const findByPkOr404 = async (pk) => {
   const blog = await prisma.blogs.findUnique({ where: { id: Number(pk) }})
   if (!blog) throw new ErrorHandler.get404("Blog")
