@@ -2,7 +2,7 @@
 const express = require("express");
 const app = (module.exports = express());
 
-const { 
+const {
     allowCrossDomain,
     validateRequest,
     jwtRequired,
