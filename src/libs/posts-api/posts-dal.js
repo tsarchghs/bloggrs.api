@@ -173,7 +173,7 @@ const insert_thumbnail_url = post => {
         post.thumbnail_url = src; 
       } catch( err ) {
         console.log(err);
-        post.thumbnail_url = null;
+        post.thumbnail_url = "/coming-soon.png";
       }
       return post;
 }
