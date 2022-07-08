@@ -63,6 +63,7 @@ model blogs {
   secretkeys         secretkeys[]
   publickeys         publickeys[]
   teammembers        teammembers[]
+  sitesessions        sitesessions[]
 
   @@index([BlogCategoryId])
   @@index([UserId])
@@ -264,6 +265,32 @@ model users {
   posts        posts[]
   referrals    referrals[]
   teammembers  teammembers[]
+  sitesessions  sitesessions[]
+}
+
+model sitesessions {
+  id                 Int                  @id @default(autoincrement())
+  UserId             Int?
+  BlogId             Int
+  pageviews          pageviews[]
+  endedAt            DateTime?
+  createdAt          DateTime?            @default(now())
+  updatedAt          DateTime?            @default(now())
+
+  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction)
+  users     users?     @relation(fields: [UserId], references: [id], onDelete: NoAction)
+
+}
+
+model pageviews {
+  id                 Int                  @id @default(autoincrement())
+  pathname           String               @db.VarChar(255)
+  createdAt          DateTime?            @default(now())
+  updatedAt          DateTime?            @default(now())
+
+  SiteSessionId             Int
+  sitesessions     sitesessions     @relation(fields: [SiteSessionId], references: [id], onDelete: NoAction)
+
 }
 
 enum posts_status {
