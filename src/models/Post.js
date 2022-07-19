@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT("long"),
         allowNull: false,
       },
+      thumbnail_url: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       status: {
         type: DataTypes.ENUM("DRAFT", "PUBLISHED", "UNPUBLISHED"),
         allowNull: false,

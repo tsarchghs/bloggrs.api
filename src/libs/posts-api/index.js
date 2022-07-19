@@ -88,14 +88,13 @@ app.get("/posts/:post_id", [
     })
 })
 
-
 const CreatePostFields = {};
 PostFieldKeys.map(key => CreatePostFields[key] = PostFields[key].required());
 app.post("/posts",[
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePostFields)
-    }))
+    })),
 ], async (req,res) => {
     let post = await createPost({
         ...req.body,

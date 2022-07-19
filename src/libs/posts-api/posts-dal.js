@@ -167,6 +167,7 @@ const functions = {
 const export_functions = {};
 
 const insert_thumbnail_url = post => {
+    if (post.thumbnail_url) return post;
     try {
         const parsed = JSON.parse(post.html_content)
         const src = find_first_img_src(parsed.blocks);
