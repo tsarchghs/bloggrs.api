@@ -136,12 +136,10 @@ module.exports = {
     const blog = await prisma.blogs.create({
       data: {
         name,
-        slug,
         craftjs_json_state: craftjs_json_state || "{}",
         description,
         logo_url,
-        UserId, 
-        BlogCategoryId,
+        UserId, BlogCategoryId,
       }
     })
     return blog;

@@ -42,6 +42,7 @@ const blogcontacts_api = require("./libs/blogcontacts-api");
 const files_api = require("./libs/files-api");
 const pageviews_api = require("./libs/pageviews-api");
 const sitesessions_api = require("./libs/sitesessions-api");
+const blogthemes_api = require("./libs/blogthemes-api");
 
 const app = express();
 const server = http.createServer(app);
@@ -62,6 +63,7 @@ app.use(PATHNAME_PREFIX, auth_api);
 app.use(PATHNAME_PREFIX, users_api);
 app.use(PATHNAME_PREFIX, blogs_api);
 app.use(PATHNAME_PREFIX, blogcontacts_api);
+app.use(PATHNAME_PREFIX, blogthemes_api);
 app.use(PATHNAME_PREFIX, blogcategories_api);
 app.use(PATHNAME_PREFIX, categories_api);
 app.use(PATHNAME_PREFIX, pages_api);

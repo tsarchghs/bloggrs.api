@@ -485,16 +485,28 @@ app.post(
   [
     jwtRequired,
     passUserFromJWT,
-    validateRequest(
-      yup.object().shape({
-        requestBody: yup.object().shape(createBlogFields),
-      })
-    ),
   ],
   async (req, res) => {
     let blog = await createBlog({
-      ...req.body,
-      UserId: req.user.id,
+      
+BlogCategory
+: 
+{id: 2},
+BlogThemeId
+: 
+-1,
+description
+: 
+"dasdsads",
+name
+: 
+"radebu",
+"thumbnail"
+: 
+"",
+"username,"
+: 
+"radebu",
     });
     return res.json({
       code: 200,

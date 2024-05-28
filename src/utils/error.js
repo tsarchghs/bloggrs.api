@@ -15,6 +15,7 @@ ErrorHandler.get404 = function(type){
 const handleError = (err, res) => {
     console.log(err,12333)
     const { code, message, errors } = err;
+    console.log(err)
     return res.status(code || 500).json({
         status: "error",
         code,
