@@ -2,13 +2,11 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
-}
+  provider = "prisma-client-js"}
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
-}
+  url      = env("DATABASE_URL")}
 
 // model Post {
 //   id        Int      @id @default(autoincrement())
@@ -29,8 +27,7 @@ datasource db {
 // }
 
 model ModelName {
-  id Int @id @default(autoincrement())
-}
+  id Int @id @default(autoincrement())}
 
 model Blog {
   id                 Int                @id @default(autoincrement())
@@ -48,14 +45,12 @@ model Blog {
   pages              Page[]
   blogPostCategories BlogPostCategory[]
   secretKeys          SecretKey[]
-  teamMembers         TeamMember[]
-}
+  teamMembers         TeamMember[]}
 
 model BlogCategory {
   id    Int    @id @default(autoincrement())
   name  String
-  blogs Blog[]
-}
+  blogs Blog[]}
 
 model BlogContact {
   id         Int    @id @default(autoincrement())
@@ -64,16 +59,14 @@ model BlogContact {
   email      String
   content    String
   blogId     Int    @unique
-  blog       Blog   @relation(fields: [blogId], references: [id])
-}
+  blog       Blog   @relation(fields: [blogId], references: [id])}
 
 model BlogPostCategory {
   id         Int      @id @default(autoincrement())
   blogId     Int      @unique
   blog       Blog     @relation(fields: [blogId], references: [id])
   categoryId Int      @unique
-  category   Category @relation(fields: [categoryId], references: [id])
-}
+  category   Category @relation(fields: [categoryId], references: [id])}
 
 model Category {
   id                 Int                @id @default(autoincrement())
@@ -81,8 +74,7 @@ model Category {
   posts              Post[]
   blogs              Blog[]
   postCategories     PostCategory[]
-  blogPostCategories BlogPostCategory[]
-}
+  blogPostCategories BlogPostCategory[]}
 
 model Page {
   id     Int    @id @default(autoincrement())
@@ -91,14 +83,12 @@ model Page {
   blogId Int    @unique
   blog   Blog   @relation(fields: [blogId], references: [id])
   userId Int    @unique
-  user   User   @relation(fields: [userId], references: [id])
-}
+  user   User   @relation(fields: [userId], references: [id])}
 
 enum PostStatus {
   DRAFT
   PUBLISHED
-  UNPUBLISHED
-}
+  UNPUBLISHED}
 
 model Post {
   id             Int            @id @default(autoincrement())
@@ -113,16 +103,14 @@ model Post {
   postCategories PostCategory[]
   categories     Category[]
   postComments   PostComment[]
-  postLikes      PostLike[]
-}
+  postLikes      PostLike[]}
 
 model PostCategory {
   id         Int      @id @default(autoincrement())
   postId     Int      @unique
   post       Post     @relation(fields: [postId], references: [id])
   categoryId Int      @unique
-  category   Category @relation(fields: [categoryId], references: [id])
-}
+  category   Category @relation(fields: [categoryId], references: [id])}
 
 model PostComment {
   id     Int    @id @default(autoincrement())
@@ -130,38 +118,33 @@ model PostComment {
   userId Int    @unique
   user   User   @relation(fields: [userId], references: [id])
   postId Int    @unique
-  post   Post   @relation(fields: [postId], references: [id])
-}
+  post   Post   @relation(fields: [postId], references: [id])}
 
 model PostLike {
   id     Int  @id @default(autoincrement())
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
   postId Int  @unique
-  post   Post @relation(fields: [postId], references: [id])
-}
+  post   Post @relation(fields: [postId], references: [id])}
 
 model Referral {
   id     Int  @id @default(autoincrement())
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
   blogId Int  @unique
-  blog   Blog @relation(fields: [blogId], references: [id])
-}
+  blog   Blog @relation(fields: [blogId], references: [id])}
 
 model SecretKey {
   id     String @id @default(uuid())
   blogId Int    @unique
-  blog   Blog   @relation(fields: [blogId], references: [id])
-}
+  blog   Blog   @relation(fields: [blogId], references: [id])}
 
 model TeamMember {
   id     Int  @id @default(autoincrement())
   userId Int  @unique
   user   User @relation(fields: [userId], references: [id])
   blogId Int  @unique
-  blog   Blog @relation(fields: [blogId], references: [id])
-}
+  blog   Blog @relation(fields: [blogId], references: [id])}
 
 model User {
   id           Int           @id @default(autoincrement())
@@ -176,5 +159,4 @@ model User {
   postLikes    PostLike[]
   pages         Page[]
   posts         Post[]
-  teamMembers   TeamMember[]
-}
+  teamMembers   TeamMember[]}

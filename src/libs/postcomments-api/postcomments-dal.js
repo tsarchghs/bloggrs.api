@@ -3,15 +3,15 @@ const prisma = require("../../prisma");
 
 module.exports = {
     findByPkOr404: pk => prisma.postcomments.findByPkOr404(pk),
-    findAll: async ({ page = 1, pageSize = 3, PostId, BlogId }) => {
+    findAll: async ({ page = 1, pageSize = 3, postId, BlogId }) => {
         page = Number(page); pageSize = Number(pageSize);
         const where = {}
-        if (PostId) where.PostId = Number(PostId);
+        if (postId) where.postId = Number(postId);
         if (BlogId) {
             const posts = await prisma.posts.findMany({ where: { BlogId: Number(BlogId) }});
             const blog_post_ids = posts.map(p => p.id);
             where.OR = blog_post_ids.map(pid => ({
-                PostId: pid
+                postId: pid
             })) 
         }
         // if (query) where[Sequelize.Op.or] = [

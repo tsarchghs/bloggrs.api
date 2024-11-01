@@ -9,6 +9,7 @@ const {
   jwtRequired,
   passUserFromJWT,
   adminRequired,
+  checkPermission,
 } = require("../../middlewares");
 
 const {
@@ -60,6 +61,7 @@ app.get(
 app.get(
   "/categories/:category_id",
   [
+    checkPermission('categories', 'read'),
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({
@@ -85,7 +87,7 @@ CategoryFieldKeys.map(
 app.post(
   "/categories",
   [
-    // jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('categories', 'create'),
     validateRequest(
       yup.object().shape({
         requestBody: yup.object().shape(CreateCategoryFields),
@@ -108,6 +110,7 @@ app.patch(
     jwtRequired,
     passUserFromJWT,
     adminRequired,
+    checkPermission('categories', 'update'),
     validateRequest(
       yup.object().shape({
         requestBody: yup.object().shape(CategoryFields),
@@ -136,6 +139,7 @@ app.delete(
     jwtRequired,
     passUserFromJWT,
     adminRequired,
+    checkPermission('categories', 'delete'),
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({

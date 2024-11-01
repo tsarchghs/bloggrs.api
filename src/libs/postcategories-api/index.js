@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createPostCategory, updatePostCategory, deletePostCategory, findByPkOr404 } = require("./postcategories-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -56,7 +56,8 @@ app.get("/postcategories/:postcategory_id", [
 const CreatePostFields = {};
 PostCategoryFieldKeys.map(key => CreatePostFields[key] = PostFields[key].required());
 app.post("/postcategories",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('postcategories.create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePostFields)
     }))
@@ -71,6 +72,7 @@ app.post("/postcategories",[
 
 app.patch("/postcategories/:postcategory_id", [
     jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('postcategories.update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PostFields),
         params: yup.object().shape({
@@ -91,6 +93,7 @@ app.patch("/postcategories/:postcategory_id", [
 
 app.delete("/postcategories/:postcategory_id", [
     jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('postcategories.delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             postcategory_id: param_id.required()

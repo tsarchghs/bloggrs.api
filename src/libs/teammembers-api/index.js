@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createTeamMember, updateTeamMember, deleteTeamMember, findByPkOr404 } = require("./teammebers-dal");
 const { ErrorHandler } = require("../../utils/error");

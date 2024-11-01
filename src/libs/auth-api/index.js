@@ -38,7 +38,8 @@ app.get('/auth', [
     return res.json(getResponse(user))
 });
 
-app.post('/auth', validateRequest(post_auth), async (req, res) => {
+app.post('/auth', [ validateRequest(post_auth) ] , async (req, res) => {
+    console.log(req.body)
     let user = await validateCredentials(req.body)
     return res.json(getResponse(user))
 });

@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createSecretKey, updateSecretKey, deleteSecretKey, findByPkOr404 } = require("./secretkeys-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -19,7 +19,7 @@ const SecretKeyFields = {
 const SecretKeyFieldKeys = Object.keys(SecretKeyFields)
 
 app.get("/secretkeys", [
-    jwtRequired, passUserFromJWT,
+    jwtRequired, passUserFromJWT, checkPermission('secretkeys', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -38,6 +38,7 @@ app.get("/secretkeys", [
 })
 
 app.get("/secretkeys/:secretkey_id", [
+    jwtRequired, passUserFromJWT, checkPermission('secretkeys', 'read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             secretkey_id: param_id.required()
@@ -56,7 +57,7 @@ app.get("/secretkeys/:secretkey_id", [
 const CreateSecretKeyFields = {};
 SecretKeyFieldKeys.map(key => CreateSecretKeyFields[key] = SecretKeyFields[key].required());
 app.post("/secretkeys",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('secretkeys', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateSecretKeyFields)
     }))
@@ -70,7 +71,7 @@ app.post("/secretkeys",[
 })
 
 app.patch("/secretkeys/:secretkey_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('secretkeys', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(SecretKeyFields),
         params: yup.object().shape({
@@ -90,7 +91,7 @@ app.patch("/secretkeys/:secretkey_id", [
 })
 
 app.delete("/secretkeys/:secretkey_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('secretkeys', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             secretkey_id: param_id.required()

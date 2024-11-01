@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createPage, updatePage, deletePage, findByPkOr404 } = require("./pages-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -44,7 +44,7 @@ const PageFields = {
 const PageFieldKeys = Object.keys(PageFields)
 
 app.get("/pages", [
-    jwtRequired, passUserFromJWT,
+    jwtRequired, passUserFromJWT, checkPermission('pages', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -63,6 +63,7 @@ app.get("/pages", [
 })
 
 app.get("/pages/:page_id", [
+    jwtRequired, passUserFromJWT, checkPermission('pages', 'read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             page_id: param_id.required()
@@ -81,7 +82,7 @@ app.get("/pages/:page_id", [
 const CreatePageFields = {};
 PageFieldKeys.map(key => CreatePageFields[key] = PageFields[key].required());
 app.post("/pages",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('pages', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePageFields)
     }))
@@ -95,7 +96,7 @@ app.post("/pages",[
 })
 
 app.patch("/pages/:page_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('pages', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PageFields),
         params: yup.object().shape({
@@ -115,7 +116,7 @@ app.patch("/pages/:page_id", [
 })
 
 app.delete("/pages/:page_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('pages', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             page_id: param_id.required()

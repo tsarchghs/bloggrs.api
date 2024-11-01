@@ -1,35 +1,77 @@
-const prisma = require("../../prisma")
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+
+async function findAll({ page = 1, pageSize = 10, status, query }) {
+  const where = {};
+  if (status) where.status = status;
+  if (query) {
+    where.OR = [
+      { BlogId: { contains: query } },
+      { CategoryId: { contains: query } },
+    ];
+  }
+
+  return await prisma.blogpostcategories.findMany({
+    where,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    include: {
+      blogs: true,
+      categories: true,
+    },
+  });
+}
+
+async function createBlogPostCategory(data) {
+  return await prisma.blogpostcategories.create({
+    data,
+    include: {
+      blogs: true,
+      categories: true,
+    },
+  });
+}
+
+async function updateBlogPostCategory({ pk, data }) {
+  const [CategoryId, BlogId] = pk.split(',').map(Number);
+  return await prisma.blogpostcategories.update({
+    where: { CategoryId_BlogId: { CategoryId, BlogId } },
+    data,
+    include: {
+      blogs: true,
+      categories: true,
+    },
+  });
+}
+
+async function deleteBlogPostCategory(pk) {
+  const [CategoryId, BlogId] = pk.split(',').map(Number);
+  return await prisma.blogpostcategories.delete({
+    where: { CategoryId_BlogId: { CategoryId, BlogId } },
+  });
+}
+
+async function findByPkOr404(pk) {
+  const [CategoryId, BlogId] = pk.split(',').map(Number);
+  const blogpostcategory = await prisma.blogpostcategories.findUnique({
+    where: { CategoryId_BlogId: { CategoryId, BlogId } },
+    include: {
+      blogs: true,
+      categories: true,
+    },
+  });
+
+  if (!blogpostcategory) {
+    throw new ErrorHandler(404, "BlogPostCategory not found");
+  }
+
+  return blogpostcategory;
+}
 
 module.exports = {
-  findByPkOr404: (pk) => prisma.blogpostcategories.findByPkOr404(pk),
-  findAll: async ({ page = 1, pageSize = 10 }) => {
-    const where = {};
-    // if (query) where[Sequelize.Op.or] = [
-    //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
-    //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
-    // ]
-    return await prisma.blogpostcategories.findMany({
-      where,
-      skip: (page - 1) & page,
-      take: pageSize,
-    });
-  },
-  createBlogPostCategory: async ({ BlogId, CategoryId }) =>
-    await prisma.blogpostcategories.create({
-      data: {
-        BlogId,
-        CategoryId,
-      }
-    }),
-  updateBlogPostCategory: async ({ pk, data }) => {
-    let keys = Object.keys(data);
-    let blogPostCategory = await prisma.blogpostcategories.findByPkOr404(pk);
-    for (let key of keys) {
-      blogPostCategory[key] = data[key];
-    }
-    await blogPostCategory.save();
-    return blogPostCategory;
-  },
-  deleteBlogPostCategory: async (pk) =>
-    await (await await prisma.blogpostcategories.findByPkOr404(pk)).destroy(),
+  findAll,
+  createBlogPostCategory,
+  updateBlogPostCategory,
+  deleteBlogPostCategory,
+  findByPkOr404,
 };

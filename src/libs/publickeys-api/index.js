@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createPublicKey, updatePublicKey, deletePublicKey, findByPkOr404 } = require("./publickeys-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -19,7 +19,7 @@ const PublicKeyFields = {
 const PublicKeyFieldKeys = Object.keys(PublicKeyFields)
 
 app.get("/publickeys", [
-    jwtRequired, passUserFromJWT,
+    jwtRequired, passUserFromJWT, checkPermission('publickeys', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -38,6 +38,7 @@ app.get("/publickeys", [
 })
 
 app.get("/publickeys/:publickey_id", [
+    jwtRequired, passUserFromJWT, checkPermission('publickeys', 'read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             publickey_id: param_id.required()
@@ -56,7 +57,7 @@ app.get("/publickeys/:publickey_id", [
 const CreatePublicKeyFields = {};
 PublicKeyFieldKeys.map(key => CreatePublicKeyFields[key] = PublicKeyFields[key].required());
 app.post("/publickeys",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('publickeys', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePublicKeyFields)
     }))
@@ -70,7 +71,7 @@ app.post("/publickeys",[
 })
 
 app.patch("/publickeys/:publickey_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('publickeys', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PublicKeyFields),
         params: yup.object().shape({
@@ -90,7 +91,7 @@ app.patch("/publickeys/:publickey_id", [
 })
 
 app.delete("/publickeys/:publickey_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('publickeys', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             publickey_id: param_id.required()

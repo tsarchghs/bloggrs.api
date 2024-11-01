@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createPageView, updatePageView, deletePageView, findByPkOr404 } = require("./pageviews-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -20,7 +20,9 @@ const PageViewFields = {
 const PageViewFieldKeys = Object.keys(PageViewFields)
 
 app.get("/pageviews", [
-    jwtRequired, passUserFromJWT,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('pageviews', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -39,6 +41,9 @@ app.get("/pageviews", [
 })
 
 app.get("/pageviews/:pageview_id", [
+    jwtRequired,
+    passUserFromJWT,
+    checkPermission('pageviews', 'read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             pageview_id: param_id.required()
@@ -57,7 +62,9 @@ app.get("/pageviews/:pageview_id", [
 const CreatePageViewFields = {};
 PageViewFieldKeys.map(key => CreatePageViewFields[key] = PageViewFields[key].required());
 app.post("/pageviews",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('pageviews', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePageViewFields)
     }))
@@ -71,7 +78,9 @@ app.post("/pageviews",[
 })
 
 app.patch("/pageviews/:pageview_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('pageviews', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PageViewFields),
         params: yup.object().shape({
@@ -91,7 +100,9 @@ app.patch("/pageviews/:pageview_id", [
 })
 
 app.delete("/pageviews/:pageview_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('pageviews', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             pageview_id: param_id.required()

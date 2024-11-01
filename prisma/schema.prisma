@@ -7,15 +7,15 @@ datasource db {
   url      = env("SHADOW_DATABASE_URL")
 }
 
-
 model blogthemes {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique() @db.VarChar(255)
-  description        String               @db.Text
-  image_url        String               @db.Text
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @default(now())
-  blogs     blogs[]
+  id          Int       @id @default(autoincrement())
+  name        String    @unique() @db.VarChar(255)
+  description String    @db.Text
+  image_url   String    @db.Text
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @default(now())
+
+  blogs blogs[]
 }
 
 model blogcategories {
@@ -52,20 +52,123 @@ model blogpostcategories {
   @@index([BlogId])
 }
 
+model roles {
+  id                Int                 @id @default(autoincrement())
+  name              String              @db.VarChar(255)
+  value             String              @db.Text
+  description       String?             @db.VarChar(255)
+  isSystem          Boolean             @default(false) // To identify system-level roles
+  permissions       permissions[]
+  parentRoleId      Int?
+  parentRole        roles?              @relation("RoleHierarchy", fields: [parentRoleId], references: [id])
+  childRoles        roles[]             @relation("RoleHierarchy")
+  users             users[]             @relation("UserRoles")
+  tenantId          Int? // For tenant-specific roles
+  tenant            tenants?            @relation(fields: [tenantId], references: [id])
+  resource_policies resource_policies[]
+
+  @@unique([name, tenantId]) // Roles must be unique within a tenant
+}
+
+model permissions {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  action      String   @db.VarChar(255) // e.g., 'create', 'read', 'update', 'delete'
+  resource    String   @db.VarChar(255) // e.g., 'blog', 'post', 'comment'
+  description String?  @db.VarChar(255)
+  isSystem    Boolean  @default(false)
+  roleId      Int?
+  role        roles?   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenantId    Int? // For tenant-specific permissions
+  tenant      tenants? @relation(fields: [tenantId], references: [id])
+
+  user_permissions user_permissions[]
+
+  @@unique([name, tenantId])
+  @@unique([action, resource, roleId, tenantId])
+}
+
+model resource_policies {
+  id           Int      @id @default(autoincrement())
+  resourceType String   @db.VarChar(255) // e.g., 'blog', 'post'
+  resourceId   Int // ID of the specific resource
+  roleId       Int // Role this policy applies to
+  permissions  Json // Detailed permission settings as JSON
+  priority     Int      @default(0) // For resolving conflicts
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  role roles @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId, roleId])
+  @@index([resourceType, resourceId])
+}
+
+model blogpermissions {
+  id           Int    @id @default(autoincrement())
+  action       String @db.VarChar(255) // e.g., 'read', 'write', 'delete'
+  resourceId   Int // ID of the resource (blog, page, etc.)
+  resourceType String @db.VarChar(255) // Type of resource (e.g., 'blog', 'page', 'post')
+  userId       Int
+
+  blog blogs @relation(fields: [resourceId], references: [id]) // Relation to blogs
+  user users @relation(fields: [userId], references: [id]) // Add this line
+
+  @@unique([userId, resourceId, resourceType, action]) // Unique permission per resource and action
+}
+
+model user_permissions {
+  id           Int     @id @default(autoincrement())
+  userId       Int
+  permissionId Int
+  isCustom     Boolean @default(false) // Indicates if this permission was set by the user
+
+  user       users       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionId]) // Ensure a user can't have the same permission twice
+}
+
+model temporaryaccesses {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  resourceId   Int
+  resourceType String   @db.VarChar(255) // e.g., 'blog', 'page', etc.
+  grantedAt    DateTime @default(now()) // Time when access was granted
+  expiresAt    DateTime // Time when access expires
+  isActive     Boolean  @default(true) // Indicates if the access is still active
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog blogs @relation(fields: [resourceId], references: [id], onDelete: Cascade) // If applicable
+
+  @@unique([userId, resourceId, resourceType]) // Ensure a user can't have multiple accesses to the same resource
+  @@index([userId])
+  @@index([resourceId])
+}
+
 model blogs {
   id                 Int                  @id @default(autoincrement())
   name               String               @db.VarChar(255)
   slug               String               @unique() @db.VarChar(255)
   description        String               @db.Text
   craftjs_json_state String?              @db.Text
-  logo_url           String               @db.VarChar(255)
+  logo_url           String?              @db.VarChar(255)
   createdAt          DateTime?            @default(now())
   updatedAt          DateTime?            @default(now())
+  deletedAt          DateTime?
   UserId             Int
   BlogCategoryId     Int
-  BlogThemeId     Int
-  blogcategories     blogcategories       @relation(fields: [BlogCategoryId], references: [id], onDelete: NoAction)
-  blogthemes     blogthemes       @relation(fields: [BlogThemeId], references: [id], onDelete: NoAction)
+  BlogThemeId        Int
+  ownershipTransfers ownershiptransfers[] // This will create a relation with ownershiptransfers
+
+  createdBy      Int?
+  updatedBy      Int?
+  tenants        tenants[] @relation("BlogTenants", map: "blogTenants")
+  createdTenants tenants[] @relation("TenantCreatedBy", map: "tenantCreatedBy") // Specify a unique map name
+  updatedTenants tenants[] @relation("TenantUpdatedBy", map: "tenantUpdatedBy") // Specify a unique map name
+
+  blogcategories     blogcategories?      @relation(fields: [BlogCategoryId], references: [id], onDelete: NoAction)
+  blogthemes         blogthemes?          @relation(fields: [BlogThemeId], references: [id], onDelete: NoAction)
   users              users                @relation(fields: [UserId], references: [id], onDelete: NoAction)
   blogcontacts       blogcontacts[]
   blogpostcategories blogpostcategories[]
@@ -75,9 +178,32 @@ model blogs {
   secretkeys         secretkeys[]
   publickeys         publickeys[]
   teammembers        teammembers[]
-  sitesessions        sitesessions[]
+  sitesessions       sitesessions[]
+  permissions        blogpermissions[]
+  temporaryaccesses  temporaryaccesses[]
+  medias             medias[]
+
+  instances instances[] // Blog can have multiple instances
 
   @@index([BlogCategoryId])
+  @@index([UserId])
+}
+
+model instances {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  status    String   @db.VarChar(50) // e.g., 'active', 'inactive'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  BlogId    Int? // Optional relation to the blog if instance relates to blogs
+  UserId    Int? // Optional relation to user
+
+  // Relations
+  blog blogs? @relation(fields: [BlogId], references: [id], onDelete: Cascade)
+  user users? @relation(fields: [UserId], references: [id], onDelete: Cascade)
+
+  // Additional attributes or relations as needed
+  @@index([BlogId])
   @@index([UserId])
 }
 
@@ -100,7 +226,6 @@ model children {
   block          blocks           @relation(fields: [BlockId], references: [id])
   BlockId        Int
   blockchildrens blockchildrens[]
-
 
   @@index([BlockId])
 }
@@ -134,25 +259,25 @@ model categories {
   slug               String               @unique @db.VarChar(255)
   createdAt          DateTime?            @default(now())
   updatedAt          DateTime?            @default(now())
-  blogpostcategories blogpostcategories[]
-  postcategories     postcategories[]
+  blogpostcategories blogpostcategories[] // Existing relation
+  postcategories     postcategories[] // Existing relation
 }
 
 model pages {
-  id        Int       @id @default(autoincrement())
-  name      String    @db.VarChar(255)
-  slug      String    @db.VarChar(255)
-  craftjs_json_state  String?               @db.Text
-  createdAt DateTime? @default(now())
-  updatedAt DateTime? @default(now())
-  BlogId    Int
-  UserId    Int
-  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction)
-  users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction)
-  
+  id                 Int       @id @default(autoincrement())
+  name               String    @db.VarChar(255)
+  slug               String    @db.VarChar(255)
+  craftjs_json_state String?   @db.Text
+  createdAt          DateTime? @default(now())
+  updatedAt          DateTime? @default(now())
+  BlogId             Int
+  UserId             Int
+  blogs              blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction)
+  users              users     @relation(fields: [UserId], references: [id], onDelete: NoAction)
+  blocks             blocks[]
+
   @@index([BlogId])
   @@index([UserId])
-  blocks blocks[]
 }
 
 model postcategories {
@@ -172,13 +297,55 @@ model postcomments {
   content   String    @db.Text
   createdAt DateTime? @default(now())
   updatedAt DateTime? @default(now())
-  PostId    Int?
-  UserId    Int
-  posts     posts?    @relation(fields: [PostId], references: [id])
-  users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction)
+  postId    Int
+  userId    Int
 
-  @@index([PostId])
-  @@index([UserId])
+  parentId        Int? // Nullable for top-level comments
+  approved        Boolean @default(false)
+  reputationScore Int     @default(0)
+
+  post             posts            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user             users            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent           postcomments?    @relation("NestedComments", fields: [parentId], references: [id], onDelete: Cascade)
+  children         postcomments[]   @relation("NestedComments")
+  moderationStatus ModerationStatus @default(PENDING)
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model tenants {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  status       String   @db.VarChar(50) // e.g., 'active', 'suspended'
+  settings     Json? // Store JSON settings for tenant-specific configurations
+  createdBy    Int? // Reference to the user who created the tenant
+  updatedBy    Int? // Reference to the user who last updated the tenant
+  blogsCreated blogs[]  @relation("TenantCreatedBy")
+  blogsUpdated blogs[]  @relation("TenantUpdatedBy")
+
+  users       users[]
+  blogs       blogs[]       @relation("BlogTenants") // Modify to match the relation name
+  creator     users?        @relation("TenantCreatedBy", fields: [createdBy], references: [id])
+  updater     users?        @relation("TenantUpdatedBy", fields: [updatedBy], references: [id])
+  roles       roles[]
+  permissions permissions[]
+}
+
+model ownershiptransfers {
+  id            Int       @id @default(autoincrement())
+  fromUserId    Int
+  toUserId      Int
+  BlogId        Int
+  transferredAt DateTime? @default(now())
+
+  fromUser users @relation("FromUser", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   users @relation("ToUser", fields: [toUserId], references: [id], onDelete: Cascade)
+  blog     blogs @relation(fields: [BlogId], references: [id], onDelete: Cascade)
+
+  @@index([BlogId])
 }
 
 model postlikes {
@@ -195,23 +362,123 @@ model postlikes {
 }
 
 model posts {
-  id             Int              @id @default(autoincrement())
-  title          String           @db.VarChar(255)
-  slug           String           @db.VarChar(255)
-  html_content   String           @db.Text
-  status         posts_status     @default(DRAFT)
-  createdAt      DateTime?        @default(now())
-  updatedAt      DateTime?        @default(now())
-  BlogId         Int
-  UserId         Int
+  id           Int          @id @default(autoincrement())
+  title        String       @db.VarChar(255)
+  slug         String       @db.VarChar(255)
+  html_content String       @db.Text
+  status       posts_status @default(DRAFT) // Ensure status includes 'DRAFT', 'PUBLISHED', etc.
+  createdAt    DateTime?    @default(now())
+  updatedAt    DateTime?    @default(now())
+  publishedAt  DateTime? // Field to specify when the post will be published
+  BlogId       Int
+  UserId       Int
+  scheduledAt  DateTime? // Time when the post is scheduled to be published
+  language     String? // Optional: e.g., 'en', 'es', 'fr'
+  locale       String? // Optional: e.g., 'en-US', 'es-ES', 'fr-FR'
+
+  createdBy      Int?
+  updatedBy      Int?
+  popularity     Int // For sorting by popularity
   blogs          blogs            @relation(fields: [BlogId], references: [id], onDelete: NoAction)
   users          users            @relation(fields: [UserId], references: [id], onDelete: NoAction)
   postcategories postcategories[]
   postcomments   postcomments[]
   postlikes      postlikes[]
+  isDeleted      Boolean          @default(false)
+  postversions   postversions[]
+  posttags       posttags[]
+  postanalytics  postanalytics[]
+
+  moderationStatus ModerationStatus @default(PENDING)
 
   @@index([BlogId])
   @@index([UserId])
+}
+
+model webhooks {
+  id        Int      @id @default(autoincrement())
+  url       String // The endpoint to which the webhook sends notifications
+  event     String // The type of event (e.g., 'POST_CREATED', 'COMMENT_ADDED', 'USER_REGISTERED')
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    Int // Optional: the ID of the user who created the webhook
+  User      users?   @relation(fields: [userId], references: [id]) // Relation to User model
+}
+
+model integrations {
+  id          Int      @id @default(autoincrement())
+  userId      Int // The ID of the user who owns the integration
+  platform    String // The name of the platform (e.g., 'Slack', 'Mailchimp')
+  accessToken String // The token for authenticating API requests
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        users    @relation(fields: [userId], references: [id])
+}
+
+model userpreferences {
+  id           Int    @id @default(autoincrement())
+  theme        String // e.g., 'light', 'dark', or the name of a custom theme
+  customStyles Json? // For storing additional customizations as JSON
+  userId       Int    @unique // Ensure this field is unique
+  user         users  @relation("UserPreferences", fields: [userId], references: [id]) // Specify fields and references here
+}
+
+model themes {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique // e.g., 'light', 'dark', 'custom-theme-1'
+  description String?
+  styles      Json // JSON object for styles associated with the theme
+}
+
+model medias {
+  id        Int      @id @default(autoincrement())
+  url       String   @db.Text // URL of the uploaded media
+  type      String // 'image', 'video', 'document', etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  BlogId    Int? // Optional relation to the Blog model
+
+  blogs blogs? @relation(fields: [BlogId], references: [id], onDelete: Cascade)
+}
+
+model postanalytics {
+  id             Int      @id @default(autoincrement())
+  postId         Int
+  views          Int      @default(0)
+  likes          Int      @default(0)
+  shares         Int      @default(0)
+  engagementTime Int      @default(0) // total engagement time in seconds
+  lastUpdated    DateTime @updatedAt
+
+  post posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model postversions {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text // Store the content of the version
+  createdAt DateTime @default(now())
+  PostId    Int // Reference to the post this version belongs to
+
+  posts posts @relation(fields: [PostId], references: [id], onDelete: Cascade)
+}
+
+model tags {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique() @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postTags posttags[] // Relation to associate posts with tags
+}
+
+model posttags {
+  PostId Int
+  TagId  Int
+
+  posts posts @relation(fields: [PostId], references: [id], onDelete: Cascade)
+  tags  tags  @relation(fields: [TagId], references: [id], onDelete: Cascade)
+
+  @@id([PostId, TagId]) // Composite key to prevent duplicate entries
 }
 
 model referrals {
@@ -239,7 +506,7 @@ model secretkeys {
 }
 
 model publickeys {
-  id        String   @id @db.Char(36) @default(uuid())
+  id        String    @id @default(uuid()) @db.Char(36)
   createdAt DateTime? @default(now())
   updatedAt DateTime? @default(now())
   BlogId    Int
@@ -256,53 +523,87 @@ model teammembers {
   BlogId    Int
   blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction)
   users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction)
+  isOwner   Boolean   @default(false) // Indicates if the user is the owner
 
   @@index([BlogId])
   @@index([UserId])
 }
 
 model users {
-  id           Int            @id @default(autoincrement())
-  email        String         @unique() @db.VarChar(255)
-  password     String         @db.VarChar(255)
-  first_name   String         @db.VarChar(255)
-  last_name    String         @db.VarChar(255)
-  isGuest      Boolean
-  createdAt    DateTime?      @default(now())
-  updatedAt    DateTime?      @default(now())
-  blogs        blogs[]
-  pages        pages[]
-  postcomments postcomments[]
-  postlikes    postlikes[]
-  posts        posts[]
-  referrals    referrals[]
-  teammembers  teammembers[]
-  sitesessions  sitesessions[]
+  id                     Int                  @id @default(autoincrement())
+  email                  String               @unique() @db.VarChar(255)
+  password               String               @db.VarChar(255)
+  first_name             String               @db.VarChar(255)
+  last_name              String               @db.VarChar(255)
+  isGuest                Boolean
+  createdAt              DateTime?            @default(now())
+  updatedAt              DateTime?            @default(now())
+  createdTenants         tenants[]            @relation("TenantCreatedBy") // Add this line
+  updatedTenants         tenants[]            @relation("TenantUpdatedBy") // Add this line
+  ownershipTransfersFrom ownershiptransfers[] @relation("FromUser") // Add this line
+  ownershipTransfersTo   ownershiptransfers[] @relation("ToUser") // Add this line
+  webhooks               webhooks[]
+  integrations           integrations[]
+
+  preferences userpreferences? @relation("UserPreferences")
+
+  createdBy Int?
+  updatedBy Int?
+
+  blogs           blogs[]
+  pages           pages[]
+  postcomments    postcomments[]
+  postlikes       postlikes[]
+  posts           posts[]
+  referrals       referrals[]
+  teammembers     teammembers[]
+  sitesessions    sitesessions[]
+  blogpermissions blogpermissions[]
+  roles           roles[]           @relation("UserRoles")
+
+  actionlogs        actionlogs[]
+  user_permissions  user_permissions[]
+  temporaryaccesses temporaryaccesses[]
+
+  instances instances[] // User can have multiple instances
+
+  // Relation to tenants
+  tenantId Int?
+  tenant   tenants? @relation(fields: [tenantId], references: [id]) // Ensure this line is defined only once
+}
+
+model actionlogs {
+  id           Int       @id @default(autoincrement())
+  action       String    @db.VarChar(255) // e.g., 'create', 'edit', 'delete'
+  userId       Int
+  resourceId   Int
+  resourceType String    @db.VarChar(255) // Type of resource
+  createdAt    DateTime? @default(now()) // When the action was logged
+
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model sitesessions {
-  id                 Int                  @id @default(autoincrement())
-  UserId             Int?
-  BlogId             Int
-  pageviews          pageviews[]
-  endedAt            DateTime?
-  createdAt          DateTime?            @default(now())
-  updatedAt          DateTime?            @default(now())
+  id        Int         @id @default(autoincrement())
+  UserId    Int?
+  BlogId    Int
+  pageviews pageviews[]
+  endedAt   DateTime?
+  createdAt DateTime?   @default(now())
+  updatedAt DateTime?   @default(now())
 
-  blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction)
-  users     users?     @relation(fields: [UserId], references: [id], onDelete: NoAction)
-
+  blogs blogs  @relation(fields: [BlogId], references: [id], onDelete: NoAction)
+  users users? @relation(fields: [UserId], references: [id], onDelete: NoAction)
 }
 
 model pageviews {
-  id                 Int                  @id @default(autoincrement())
-  pathname           String               @db.VarChar(255)
-  createdAt          DateTime?            @default(now())
-  updatedAt          DateTime?            @default(now())
+  id        Int       @id @default(autoincrement())
+  pathname  String    @db.VarChar(255)
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @default(now())
 
-  SiteSessionId             Int
-  sitesessions     sitesessions     @relation(fields: [SiteSessionId], references: [id], onDelete: NoAction)
-
+  SiteSessionId Int
+  sitesessions  sitesessions @relation(fields: [SiteSessionId], references: [id], onDelete: NoAction)
 }
 
 enum posts_status {
@@ -314,4 +615,10 @@ enum posts_status {
 
 enum referrals_type {
   BLOG
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

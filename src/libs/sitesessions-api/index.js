@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createSiteSession, updateSiteSession, deleteSiteSession, findByPkOr404 } = require("./sitesessions-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -21,7 +21,9 @@ const SiteSessionFields = {
 const SiteSessionFieldKeys = Object.keys(SiteSessionFields)
 
 app.get("/sitesessions", [
-    jwtRequired, passUserFromJWT,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('sitesessions', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -40,6 +42,9 @@ app.get("/sitesessions", [
 })
 
 app.get("/sitesessions/:sitesession_id", [
+    jwtRequired,
+    passUserFromJWT, 
+    checkPermission('sitesessions', 'read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             sitesession_id: param_id.required()
@@ -61,7 +66,9 @@ SiteSessionFieldKeys.map(key => {
     CreateSiteSessionFields[key] = SiteSessionFields[key].required()
 });
 app.post("/sitesessions",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('sitesessions', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateSiteSessionFields)
     }))
@@ -75,7 +82,9 @@ app.post("/sitesessions",[
 })
 
 app.patch("/sitesessions/:sitesession_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('sitesessions', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(SiteSessionFields),
         params: yup.object().shape({
@@ -95,7 +104,9 @@ app.patch("/sitesessions/:sitesession_id", [
 })
 
 app.delete("/sitesessions/:sitesession_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('sitesessions', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             sitesession_id: param_id.required()

@@ -9,6 +9,7 @@ const {
   jwtRequired,
   passUserFromJWT,
   adminRequired,
+  checkPermission,
 } = require("../../middlewares");
 
 const {
@@ -26,6 +27,10 @@ const {
   findBySlug,
   update_page_state,
 } = require("./blogs-dal");
+const fs = require('fs');
+const path = require('path');
+const unzipper = require('unzipper');
+const { exec } = require('child_process');
 
 const {
   findAll: findComments
@@ -41,6 +46,8 @@ const { findPostsForBlog, findPost } = require("../posts-dal");
 const publickeysDal = require("../publickeys-api/publickeys-dal");
 const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
 const pagesDal = require("../pages-api/pages-dal");
+const prisma = require("../../prisma");
+const { requireAuth } = require('../../middlewares/auth');
 
 app.use(allowCrossDomain);
 
@@ -64,6 +71,57 @@ const getResponse = (blog) => ({
     blog,
   },
 });
+
+app.get("/blogs/:slug/api_key", async (req, res) => {
+  const { slug } = req.params;
+  const blog = await findBySlug(slug);
+  const key = await publickeysDal.findOne({
+    BlogId: blog.id
+  });
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "slug not valid"])
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
+
+app.get(
+  "/blogs/:blog_id/posts",
+  [
+    jwtRequired,
+    passUserFromJWT,
+    validateRequest(
+      yup.object().shape({
+        query: yup.object().shape({
+          page: param_id,
+          pageSize: param_id,
+        }),
+        params: yup.object().shape({
+          blog_id: param_id.required(),
+        }),
+      })
+    ),
+  ],
+  async (req, res) => {
+    const { id: UserId } = req.user;
+    
+    // Check if user has access to this blog
+    const blog = await findByPkOr404(req.params.blog_id);
+    if (blog.UserId !== UserId) {
+      throw new ErrorHandler(403, "Forbidden", ["You don't have access to this blog"]);
+    }
+
+    const posts = await findPostsForBlog(req.params.blog_id, UserId, req.query);
+    return res.json({
+      code: 200,
+      message: "success",
+      data: { posts },
+    });
+  }
+);
+
+
 app.post(
   "/blogs/:blog_id/generate_secret",
   [
@@ -108,19 +166,6 @@ app.post(
   }
 );
 
-app.get("/blogs/:slug/api_key", async (req, res) => {
-  const { slug } = req.params;
-  const blog = await findBySlug(slug);
-  const key = await publickeysDal.findOne({
-    BlogId: blog.id
-  });
-  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "slug not valid"])
-  return res.json({
-    code: 200,
-    message: "success",
-    data: { blog, key }
-  })
-});
 
 app.get("/blogs/api_key/:api_key", [
   validateRequest(
@@ -294,30 +339,6 @@ app.get("/blogs/:blog_id/pages/:slug", [
   })
 })
 
-app.get(
-  "/blogs/:blog_id/posts",
-  [
-    validateRequest(
-      yup.object().shape({
-        query: yup.object().shape({
-          page: param_id,
-          pageSize: param_id,
-        }),
-      })
-    ),
-    jwtRequired,
-    passUserFromJWT
-  ],
-  async (req, res) => {
-    const { id: UserId } = req.user;
-    const posts = await findPostsForBlog(req.params.blog_id, UserId, req.query);
-    return res.json({
-      code: 200,
-      message: "success",
-      data: { posts },
-    });
-  }
-);
 
 app.get(
   "/blogs/:blog_id/posts/:post_id",
@@ -475,39 +496,94 @@ const createBlogFields = {};
 BlogFieldKeys.map(
   (key) => {
     if (key === 'description') return createBlogFields[key]
+    if (key === 'logo_url') return createBlogFields[key]
     if (key === 'slug') return createBlogFields[key]
     if (key === 'craftjs_json_state') return createBlogFields[key]
     return (createBlogFields[key] = BlogFields[key].required())
   }
 );
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 app.post(
   "/blogs",
   [
     jwtRequired,
     passUserFromJWT,
+    checkPermission('blogs', 'create'),
+    validateRequest(yup.object().shape({
+      requestBody: yup.object().shape(createBlogFields)
+    }))
   ],
   async (req, res) => {
-    let blog = await createBlog({
-      
-BlogCategory
-: 
-{id: 2},
-BlogThemeId
-: 
--1,
-description
-: 
-"dasdsads",
-name
-: 
-"radebu",
-"thumbnail"
-: 
-"",
-"username,"
-: 
-"radebu",
+    const fetch = (await import('node-fetch')).default;
+    // Generate slug from name if not provided
+    const slug = req.body.slug || req.body.name.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
+    let blog = await createBlog({ 
+      ...req.body,
+      slug,
+      UserId: req.user.id, 
+      req 
     });
+    let key = await generatePublicKey(blog.id);
+    const repoUrl = 'https://github.com/bloggrs/bloggrs.platform.next/archive/refs/heads/main.zip'; // replace with your repo's URL
+
+    // Step 1: Download the repository ZIP file
+    const response = await fetch(repoUrl);
+    const zipFilePath = path.join(__dirname, 'repository.zip');
+    const tempDir = path.join(__dirname, 'repository-main-' + blog.id); // Directory where files are extracted
+
+    const fileStream = fs.createWriteStream(zipFilePath);
+    await new Promise((resolve, reject) => {
+      response.body.pipe(fileStream);
+      response.body.on('error', reject);
+      fileStream.on('finish', resolve);
+    });
+
+    await  delay(3000);
+
+    // Step 2: Unzip the downloaded file
+    await new Promise(async (resolve, reject) => {
+      await fs.createReadStream(zipFilePath)
+        .pipe(unzipper.Extract({ path: tempDir }))
+        .on('close', resolve) // Resolve when extraction is complete
+        .on('error', reject);
+    });
+
+    // Step 3: Modify specific files
+    const fileToModify = path.join(tempDir, 'bloggrs.platform.next-main/lib/bloggrs.js'); // Update path accordingly
+    const fileToModify2 = path.join(tempDir, 'bloggrs.platform.next-main/.env'); // Update path accordingly
+
+    let fileContent = fs.readFileSync(fileToModify, 'utf-8');
+    fileContent = fileContent.replace('carinova', blog.slug); // Customize replacement
+    fs.writeFileSync(fileToModify, fileContent);
+    const newEnvContent = `NEXT_PUBLIC_BLOGGRS_PUBLIC_KEY=${key}\n`; // Customize this as needed
+    fs.writeFileSync(fileToModify2, newEnvContent); // This will overwrite the file
+    
+    // Step 4: Run `npm start`
+    exec(`npm install && npm run dev`, { cwd: tempDir + "/bloggrs.platform.next-main" }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error starting app: ${error}`);
+        res.status(500).send('Error starting the app');
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+      res.send('App started successfully');
+    });
+    await prisma.instances.create({
+      data: {
+        name: 'repository-main-' + blog.id,
+        status: 'running',
+        BlogId: blog.BlogId, // Optional field, ensure BlogId is valid if used
+        UserId: blog.UserId, // Optional field, ensure UserId is valid if used
+      },
+    });
+
     return res.json({
       code: 200,
       message: "success",
@@ -521,7 +597,7 @@ app.patch(
   [
     jwtRequired,
     passUserFromJWT,
-    adminRequired,
+    checkPermission('blogs', 'update'),
     validateRequest(
       yup.object().shape({
         requestBody: yup.object().shape(BlogFields),
@@ -549,7 +625,7 @@ app.delete(
   [
     jwtRequired,
     passUserFromJWT,
-    adminRequired,
+    checkPermission('blogs', 'delete'),
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({
@@ -559,7 +635,7 @@ app.delete(
     ),
   ],
   async (req, res) => {
-    await deleteBlog(req.params.blog_id);
+    await deleteBlog(req.params.blog_id, req);
     return res.json({
       code: 204,
       message: "success",

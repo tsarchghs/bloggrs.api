@@ -1,4 +1,3 @@
-
 const express = require("express");
 const app = (module.exports = express());
 
@@ -7,7 +6,8 @@ const {
     validateRequest,
     jwtRequired,
     passUserFromJWT,
-    adminRequired
+    adminRequired,
+    checkPermission
 } = require("../../middlewares");
 
 const multer = require("multer");
@@ -19,6 +19,7 @@ const uploadMiddleware = upload.fields([
 ])
 
 app.post("/files/upload", [
+    checkPermission('files', 'create'),
     uploadMiddleware
 ], (req, res) => {
     let image;

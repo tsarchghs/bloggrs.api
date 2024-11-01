@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createBlogTheme, updateBlogTheme, deleteBlogTheme, findByPkOr404 } = require("./blogthemes-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -51,7 +51,10 @@ app.get("/blogthemes/:blogtheme_id", [
         params: yup.object().shape({
             blogtheme_id: param_id.required()
         })
-    }))
+    })),
+    jwtRequired,
+    passUserFromJWT,
+    checkPermission('blogthemes', 'read')
 ], async (req,res) => {
     const blogtheme = await findByPkOr404(req.params.blogtheme_id);
     return res.json({
@@ -70,7 +73,10 @@ app.get("/blogthemes/:blogtheme_id", [
 const CreateBlogThemeFields = {};
 BlogThemeFieldKeys.map(key => CreateBlogThemeFields[key] = BlogThemeFields[key].required());
 app.post("/blogthemes",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT, 
+    adminRequired,
+    checkPermission('blogthemes', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateBlogThemeFields)
     }))
@@ -89,7 +95,10 @@ app.post("/blogthemes",[
 })
 
 app.patch("/blogthemes/:blogtheme_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT, 
+    adminRequired,
+    checkPermission('blogthemes', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(BlogThemeFields),
         params: yup.object().shape({
@@ -114,7 +123,10 @@ app.patch("/blogthemes/:blogtheme_id", [
 })
 
 app.delete("/blogthemes/:blogtheme_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT, 
+    adminRequired,
+    checkPermission('blogthemes', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             blogtheme_id: param_id.required()

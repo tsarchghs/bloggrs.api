@@ -21,6 +21,8 @@ const docs_collector = new DocsCollector(
 );
 
 const { errorHandler, allowCrossDomain } = require("./middlewares");
+const { addPermissionContext } = require("./middlewares/permissions");
+const { authenticateUser } = require("./middlewares/auth");
 
 const users_api = require("./libs/users-api");
 const auth_api = require("./libs/auth-api");
@@ -54,6 +56,8 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json({ limit: "50mb" }));
 app.use(logger);
 app.use(allowCrossDomain);
+app.use(authenticateUser);
+app.use(addPermissionContext);
 
 const PATHNAME_PREFIX = "/api/v1";
 

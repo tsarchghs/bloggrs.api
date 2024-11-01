@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createPostLike, updatePostLike, deletePostLike, findByPkOr404 } = require("./postlikes-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -20,7 +20,7 @@ const PostLikeFields = {
 const PostLikeFieldKeys = Object.keys(PostLikeFields)
 
 app.get("/postlikes", [
-    jwtRequired, passUserFromJWT,
+    jwtRequired, passUserFromJWT, checkPermission('postlikes.list'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -39,6 +39,7 @@ app.get("/postlikes", [
 })
 
 app.get("/postlikes/:postlike_id", [
+    jwtRequired, passUserFromJWT, checkPermission('postlikes.view'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             postlike_id: param_id.required()
@@ -57,7 +58,7 @@ app.get("/postlikes/:postlike_id", [
 const CreatePostLikeFields = {};
 PostLikeFieldKeys.map(key => CreatePostLikeFields[key] = PostLikeFields[key].required());
 app.post("/postlikes",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('postlikes.create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePostLikeFields)
     }))
@@ -71,7 +72,7 @@ app.post("/postlikes",[
 })
 
 app.patch("/postlikes/:postlike_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('postlikes.update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PostLikeFields),
         params: yup.object().shape({
@@ -91,7 +92,7 @@ app.patch("/postlikes/:postlike_id", [
 })
 
 app.delete("/postlikes/:postlike_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, checkPermission('postlikes.delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             postlike_id: param_id.required()

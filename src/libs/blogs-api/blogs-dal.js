@@ -29,7 +29,8 @@ const transformBlog = async blog => {
 }
 
 const findByPkOr404 = async (pk) => {
-  const blog = await prisma.blogs.findUnique({ where: { id: Number(pk) }})
+  const blog = await prisma.blogs.findUnique({ where: { id: Number(pk), deletedAt: null }}) ||
+  await prisma.blogs.findUnique({ where: { id: Number(pk), deletedAt: { lte: new Date() } }})
   if (!blog) throw new ErrorHandler.get404("Blog")
   return await transformBlog(blog);
 }
@@ -58,6 +59,51 @@ const updateBlog = async ({ pk, data }) => {
   const blog = await prisma.blogs.update({
     where: { id: Number(pk) },
     data
+  })
+  return blog;
+}
+
+const createBlog = async ({ 
+  name, slug, craftjs_json_state, description,
+  logo_url, UserId, BlogCategoryId, blocks, BlogCategory
+}) => {
+  console.log({
+    name, slug,
+    craftjs_json_state,
+    description,
+    logo_url,
+    UserId,
+    BlogCategoryId,
+    BlogCategory
+  })
+  
+  if (!slug) slug = slugify(name)
+  if (!description) description = "not set";
+  
+  // Check if slug exists and append number if needed
+  let finalSlug = slug;
+  let counter = 1;
+  while (true) {
+    const existingBlog = await prisma.blogs.findUnique({
+      where: { slug: finalSlug }
+    });
+    if (!existingBlog) break;
+    finalSlug = `${slug}-${counter}`;
+    counter++;
+  }
+
+  console.log(finalSlug, "final slug")
+  const blog = await prisma.blogs.create({
+    data: {
+      name,
+      craftjs_json_state: craftjs_json_state || "{}",
+      description,
+      logo_url,
+      slug: finalSlug,
+      blogcategories:  { connect: { id: BlogCategoryId }},
+      users: { connect: { id: UserId } },
+      blogthemes: { connect: { id: 1 }}
+    }
   })
   return blog;
 }
@@ -100,9 +146,9 @@ module.exports = {
     await transformBlog(blog);
     return blog; 
   },
-  findAll: async ({ page = 1, pageSize = 10, UserId }) => {
-    page = Number(page)
-    pageSize = Number(pageSize)
+  findAll: async ({ page = 1, pageSize = 1000, UserId }) => {
+    // page = Number(page)
+    // pageSize = Number(pageSize)
     const where = {};
     if (UserId) where.UserId = UserId;
     // if (query) where[Sequelize.Op.or] = [
@@ -111,42 +157,36 @@ module.exports = {
     // ]
     const blogs = await prisma.blogs.findMany({
       where,
-      skip: (page - 1) & page,
-      take: pageSize,
+      // skip: (page - 1) & page,
+      // take: pageSize,
     });
     for (let blog of blogs) {
       await transformBlog(blog);
     }
     return blogs;
   },
-  createBlog: async ({ 
-    name, slug, craftjs_json_state, description,
-    logo_url, UserId, BlogCategoryId, blocks
-  }) => {
-    console.log({
-      name, slug,
-      craftjs_json_state,
-      description,
-      logo_url,
-      UserId,
-      BlogCategoryId,
-    })
-    if (!slug) slug = slugify(name)
-    if (!description) description = "not set";
-    const blog = await prisma.blogs.create({
-      data: {
-        name,
-        craftjs_json_state: craftjs_json_state || "{}",
-        description,
-        logo_url,
-        UserId, BlogCategoryId,
-      }
-    })
-    return blog;
-  },
+  createBlog,
   updateBlog,
-  deleteBlog: async (pk) =>
-    await (await await findByPkOr404(pk)).destroy(),
+  deleteBlog: async (pk, req) => {
+    // Fetch the blog by primary key, or throw a 404 if not found
+    const blog = await findByPkOr404(pk);
+  
+    // Check if the user has the required permissions (e.g., delete permission)
+    const userPermissions = req.user?.permissions || [];
+    console.log(req.user.permissions, "DSASDS")
+    // Construct the permission string dynamically, assuming permissions follow the format: 'blog:delete:blogId'
+    const permissionKey = `blog:delete:${blog.id}`;
+    
+    // Check if the user has the required permission
+    if (!userPermissions.includes(permissionKey)) {
+      throw new ErrorHandler(400, "Unauthorized", [
+        "Unauthorized: You do not have permission to delete this blog."
+    ])
+    }
+    
+    // If authorized, proceed with deletion
+    await prisma.blogs.update({ where: { id: parseInt(pk) }, data: { updatedAt: new Date() }});
+  },  
   generateSecret: async (BlogId) => {
     const secretKey = await prisma.secretkeys.create({
       data: { id: randomUUID(), BlogId: Number(BlogId) },

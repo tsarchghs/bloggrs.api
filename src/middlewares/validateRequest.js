@@ -2,6 +2,7 @@ const { ErrorHandler } = require("../utils/error")
 
 module.exports = (yupSchema,strict = true,options) => {
     return async (req,res,next) => {
+        console.log(req.body,21132)
         if (options){
             let {
                 admin_or_id_is_same_as_val_of_param

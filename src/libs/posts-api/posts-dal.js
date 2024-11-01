@@ -89,7 +89,7 @@ const functions = {
      }) => {
         const data = {
             title, slug, html_content, status,
-            BlogId, UserId
+            BlogId, UserId, popularity: 0
         }
         const categories_result = await prisma.categories.findMany({
             where: {
@@ -110,7 +110,7 @@ const functions = {
             await prisma.postcategories.create({
                 data: {
                     CategoryId: category.id,
-                    PostId: post.id
+                    postId: post.id
                 }
             })
         ))
@@ -153,7 +153,7 @@ const functions = {
                 await prisma.postcategories.create({
                     data: {
                         CategoryId: category.id,
-                        PostId: post.id
+                        postId: post.id
                     }
                 }).catch(() => {}) // already exists
             ))

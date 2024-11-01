@@ -4,6 +4,7 @@ const express = require("express");
 const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { checkPermission } = require("../../middlewares/permissions");
 
 const { findAll, createBlogContact, updateBlogContact, deleteBlogContact, findByPkOr404 } = require("./blogcontacts-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -24,6 +25,7 @@ const BlogContactFieldKeys = Object.keys(BlogContactFields)
 
 app.get("/blogcontacts", [
     jwtRequired, passUserFromJWT,
+    checkPermission('blogcontacts', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -60,7 +62,9 @@ app.get("/blogcontacts/:blogcontact_id", [
 const CreateBlogContactFields = {};
 BlogContactFieldKeys.map(key => CreateBlogContactFields[key] = BlogContactFields[key].required());
 app.post("/blogcontacts",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('blogcontacts', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateBlogContactFields)
     }))
@@ -74,7 +78,9 @@ app.post("/blogcontacts",[
 })
 
 app.patch("/blogcontacts/:blogcontact_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('blogcontacts', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(BlogContactFields),
         params: yup.object().shape({
@@ -94,7 +100,9 @@ app.patch("/blogcontacts/:blogcontact_id", [
 })
 
 app.delete("/blogcontacts/:blogcontact_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, 
+    passUserFromJWT,
+    checkPermission('blogcontacts', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             blogcontact_id: param_id.required()

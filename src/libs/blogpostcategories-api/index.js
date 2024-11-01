@@ -8,7 +8,7 @@ const {
   validateRequest,
   jwtRequired,
   passUserFromJWT,
-  adminRequired,
+  checkPermission,
 } = require("../../middlewares");
 
 const {
@@ -36,6 +36,7 @@ app.get(
   [
     jwtRequired,
     passUserFromJWT,
+    checkPermission('blogpostcategories', 'read'),
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
@@ -60,6 +61,9 @@ app.get(
 app.get(
   "/blogpostcategories/:blogpostcategory_id",
   [
+    jwtRequired,
+    passUserFromJWT,
+    checkPermission('blogpostcategories', 'read'),
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({
@@ -69,12 +73,10 @@ app.get(
     ),
   ],
   async (req, res) => {
-    const blogpostcategory = await findByPkOr404(
-      req.params.blogpostcategory_id
-    );
+    const blogpostcategory = await findByPkOr404(req.params.blogpostcategory_id);
     return res.json({
       code: 200,
-      message: "sucess",
+      message: "success",
       data: { blogpostcategory },
     });
   }
@@ -88,7 +90,9 @@ BlogPostCategoryFieldKeys.map(
 app.post(
   "/blogpostcategories",
   [
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired,
+    passUserFromJWT,
+    checkPermission('blogpostcategories', 'create'),
     validateRequest(
       yup.object().shape({
         requestBody: yup.object().shape(CreateBlogPostCategoryFields),
@@ -110,7 +114,7 @@ app.patch(
   [
     jwtRequired,
     passUserFromJWT,
-    adminRequired,
+    checkPermission('blogpostcategories', 'update'),
     validateRequest(
       yup.object().shape({
         requestBody: yup.object().shape(BlogPostCategoryFields),
@@ -138,7 +142,7 @@ app.delete(
   [
     jwtRequired,
     passUserFromJWT,
-    adminRequired,
+    checkPermission('blogpostcategories', 'delete'),
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({

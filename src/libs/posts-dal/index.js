@@ -36,14 +36,16 @@ module.exports = {
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
+    console.log({where})
     let posts = await prisma.posts.findMany({
       where,
       include: {
         users: true
       },
-      skip: Number(page) - 1 && Number(page-1) * Number(pageSize),
-      take: Number(pageSize),
+      // skip: Number(page) - 1 && Number(page-1) * Number(pageSize),
+      // take: Number(pageSize),
     });
+    console.log(posts,"DASADS")
     posts = posts.map(async (post) => {
       post = JSON.parse(JSON.stringify(post));
       const liked = Boolean(await prisma.postlikes.count({
@@ -53,7 +55,7 @@ module.exports = {
         where: { PostId: post.id },
       });
       const comments_count = await prisma.postcomments.count({
-        where: { PostId: post.id },
+        where: { postId: post.id },
       });
       const meta = {
         likes_count,
@@ -80,7 +82,7 @@ module.exports = {
       where: { PostId: post.id },
     });
     const comments_count = await prisma.postcomments.count({
-      where: { PostId: post.id },
+      where: { postId: post.id },
     });
     const meta = {
       likes_count,

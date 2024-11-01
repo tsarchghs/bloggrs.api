@@ -7,11 +7,12 @@ const {
     allowCrossDomain, validateRequest, 
     jwtRequired, passUserFromJWT, 
     adminRequired, jwtNotRequired,
-    passUserOrCreateGuestFromJWT 
+    passUserOrCreateGuestFromJWT, checkPermission
 } = require("../../middlewares");
 
 const { findAll, createPost, updatePost, deletePost, findByPkOr404 } = require("./posts-dal");
 const { ErrorHandler } = require("../../utils/error");
+const { checkBlogAccess } = require("../utils/permissions");
 
 const yup = require("yup");
 const { param_id, id } = require("../utils/validations");
@@ -50,22 +51,33 @@ const PostFields = {
 const PostFieldKeys = Object.keys(PostFields)
 
 app.get("/posts", [
-    jwtNotRequired, passUserOrCreateGuestFromJWT,
+    jwtNotRequired, passUserOrCreateGuestFromJWT, checkPermission('posts:read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
             pageSize: yup.number().integer().positive().default(3),
             status: yup.string(),
             query: yup.string(),
-            categories: yup.string()
+            categories: yup.string(),
+            BlogId: id
         })
     }))
 ], async (req,res) => {
-    let { page, pageSize } = req.query;
+    let { page, pageSize, BlogId } = req.query;
+    
+    if (BlogId) {
+        const hasAccess = await checkBlogAccess(BlogId, req.user.id);
+        if (!hasAccess) {
+            throw new ErrorHandler(403, "You don't have access to this blog's posts");
+        }
+    }
+
     let posts = await findAll({
         ...req.query,
-        UserId: req.user.id
+        UserId: req.user.id,
+        status: req.user.isAdmin ? req.query.status : 'published'
     }); 
+
     return res.json({
         message: "success",
         code: 200,
@@ -74,6 +86,7 @@ app.get("/posts", [
 })
 
 app.get("/posts/:post_id", [
+    checkPermission('posts:read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             post_id: param_id.required()
@@ -91,7 +104,7 @@ app.get("/posts/:post_id", [
 const CreatePostFields = {};
 PostFieldKeys.map(key => CreatePostFields[key] = PostFields[key].required());
 app.post("/posts",[
-    jwtRequired, passUserFromJWT,
+    jwtRequired, passUserFromJWT, checkPermission('posts:create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreatePostFields)
     })),
@@ -108,7 +121,7 @@ app.post("/posts",[
 })
 
 app.patch("/posts/:post_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, adminRequired, checkPermission('posts:update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(PostFields),
         params: yup.object().shape({
@@ -128,7 +141,7 @@ app.patch("/posts/:post_id", [
 })
 
 app.delete("/posts/:post_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT, adminRequired, checkPermission('posts:delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             post_id: param_id.required()

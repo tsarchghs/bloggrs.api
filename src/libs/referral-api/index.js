@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createReferral, updateReferral, deleteReferral, findByPkOr404 } = require("./referral-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -22,6 +22,7 @@ const ReferralFieldKeys = Object.keys(ReferralFields)
 
 app.get("/referral", [
     jwtRequired, passUserFromJWT,
+    checkPermission('referral', 'read'),
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -40,6 +41,8 @@ app.get("/referral", [
 })
 
 app.get("/referral/:referral_id", [
+    jwtRequired, passUserFromJWT,
+    checkPermission('referral', 'read'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             referral_id: param_id.required()
@@ -58,7 +61,8 @@ app.get("/referral/:referral_id", [
 const CreateReferralFields = {};
 ReferralFieldKeys.map(key => CreateReferralFields[key] = ReferralFields[key].required());
 app.post("/referral",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT,
+    checkPermission('referral', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateReferralFields)
     }))
@@ -72,7 +76,8 @@ app.post("/referral",[
 })
 
 app.patch("/referral/:referral_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT,
+    checkPermission('referral', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(ReferralFields),
         params: yup.object().shape({
@@ -92,7 +97,8 @@ app.patch("/referral/:referral_id", [
 })
 
 app.delete("/referral/:referral_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT,
+    checkPermission('referral', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             referral_id: param_id.required()

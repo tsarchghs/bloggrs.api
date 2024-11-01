@@ -3,7 +3,7 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired, checkPermission } = require("../../middlewares");
 
 const { findAll, createBlogCategory, updateBlogCategory, deleteBlogCategory, findByPkOr404 } = require("./blogcategories-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -19,7 +19,6 @@ const BlogCategoryFields = {
 const BlogCategoryFieldKeys = Object.keys(BlogCategoryFields)
 
 app.get("/blogcategories", [
-    // jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
@@ -47,7 +46,7 @@ app.get("/blogcategories/:blogcategory_id", [
     const blogcategory = await findByPkOr404(req.params.blogcategory_id);
     return res.json({
         code: 200,
-        message: "sucess",
+        message: "success",
         data: { blogcategory }
     })
 })
@@ -56,7 +55,7 @@ app.get("/blogcategories/:blogcategory_id", [
 const CreateBlogCategoryFields = {};
 BlogCategoryFieldKeys.map(key => CreateBlogCategoryFields[key] = BlogCategoryFields[key].required());
 app.post("/blogcategories",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('blogcategories', 'create'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateBlogCategoryFields)
     }))
@@ -70,7 +69,7 @@ app.post("/blogcategories",[
 })
 
 app.patch("/blogcategories/:blogcategory_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('blogcategories', 'update'),
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(BlogCategoryFields),
         params: yup.object().shape({
@@ -90,7 +89,7 @@ app.patch("/blogcategories/:blogcategory_id", [
 })
 
 app.delete("/blogcategories/:blogcategory_id", [
-    jwtRequired, passUserFromJWT, adminRequired,
+    checkPermission('blogcategories', 'delete'),
     validateRequest(yup.object().shape({
         params: yup.object().shape({
             blogcategory_id: param_id.required()
