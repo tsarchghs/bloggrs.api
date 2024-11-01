@@ -569,11 +569,11 @@ app.post(
     exec(`npm install && npm run dev`, { cwd: tempDir + "/bloggrs.platform.next-main" }, (error, stdout, stderr) => {
       if (error) {
         console.error(`Error starting app: ${error}`);
-        res.status(500).send('Error starting the app');
+        // res.status(500).send('Error starting the app');
         return;
       }
       console.log(`stdout: ${stdout}`);
-      res.send('App started successfully');
+      // res.send('App started successfully');
     });
     await prisma.instances.create({
       data: {
