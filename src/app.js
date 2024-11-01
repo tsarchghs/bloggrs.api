@@ -45,6 +45,7 @@ const files_api = require("./libs/files-api");
 const pageviews_api = require("./libs/pageviews-api");
 const sitesessions_api = require("./libs/sitesessions-api");
 const blogthemes_api = require("./libs/blogthemes-api");
+const roles_api = require("./libs/roles-api");
 
 const app = express();
 const server = http.createServer(app);
@@ -83,6 +84,7 @@ app.use(PATHNAME_PREFIX, blogpostcategories_api);
 app.use(PATHNAME_PREFIX, files_api);
 app.use(PATHNAME_PREFIX, pageviews_api);
 app.use(PATHNAME_PREFIX, sitesessions_api);
+app.use(PATHNAME_PREFIX, roles_api);
 
 app.get("/", (req, res) => res.json({ versions: ["v1"] }));
 app.get("*", (req, res) =>
