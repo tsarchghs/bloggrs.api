@@ -13,9 +13,10 @@ module.exports = {
         })
     },
     createBlogCategory: async ({ 
-        name
+        name,
+        blog_id
      }) => await prisma.blogcategories.create({ 
-        data: { name }
+        data: { name, blogs: { connect: { id: blog_id } } }
       }),
     updateBlogCategory: async ({pk,data}) => {
         let keys = Object.keys(data);

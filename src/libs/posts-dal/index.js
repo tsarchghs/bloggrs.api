@@ -7,11 +7,16 @@ function truncate(source, size) {
 }
 
 const getPostContentText = post => {
-  try { JSON.parse(post.html_content) } catch(err) { console.log(err.toString()); return ""; }
-  const parsed = JSON.parse(post.html_content);
-  const paragraph = parsed.blocks.find(b => b.type == "paragraph");
-  const { text } = paragraph.data;
-  return truncate(convert(text), 450);
+  try { 
+    const parsed = JSON.parse(post.html_content);
+    const paragraph = parsed.blocks?.find(b => b.type === "paragraph");
+    // Return empty string if no paragraph block found or if data/text is missing
+    if (!paragraph?.data?.text) return "";
+    return truncate(convert(paragraph.data.text), 450);
+  } catch(err) { 
+    console.log(err.toString()); 
+    return ""; 
+  }
 }
 
 module.exports = {

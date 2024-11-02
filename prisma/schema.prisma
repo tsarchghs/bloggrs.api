@@ -43,6 +43,7 @@ model blogcontacts {
 model blogpostcategories {
   createdAt  DateTime?  @default(now())
   updatedAt  DateTime?  @default(now())
+  description  String    @db.VarChar(255)
   CategoryId Int
   BlogId     Int
   blogs      blogs      @relation(fields: [BlogId], references: [id], onDelete: Cascade)

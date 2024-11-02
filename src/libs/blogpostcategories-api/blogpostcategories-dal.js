@@ -1,4 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
+const { connect } = require("http2");
 const prisma = new PrismaClient();
 
 async function findAll({ page = 1, pageSize = 10, status, query }) {
@@ -18,16 +19,52 @@ async function findAll({ page = 1, pageSize = 10, status, query }) {
     include: {
       blogs: true,
       categories: true,
-    },
+    }
   });
 }
 
 async function createBlogPostCategory(data) {
+  // Create category if it doesn't exist
+  let category = await prisma.categories.findFirst({
+    where: { name: data.CategoryId }
+  });
+
+  if (!category) {
+    // Generate a unique slug from the name
+    const slug = data.CategoryId.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    // Check if slug exists and append number if needed
+    let uniqueSlug = slug;
+    let counter = 1;
+    while (await prisma.categories.findFirst({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+
+    category = await prisma.categories.create({
+      data: {
+        name: data.CategoryId,
+        slug: uniqueSlug,
+      }
+    });
+  }
+
+  // Use the category's id for the blog post category
+  const blogPostCategoryData = {
+    ...data,
+    CategoryId: category.id,
+    BlogId: data.BlogId,
+  };
+
   return await prisma.blogpostcategories.create({
-    data,
+    data: blogPostCategoryData,
     include: {
       blogs: true,
       categories: true,
+      
+
     },
   });
 }

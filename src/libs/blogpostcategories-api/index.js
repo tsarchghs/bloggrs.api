@@ -27,7 +27,7 @@ app.use(allowCrossDomain);
 
 const BlogPostCategoryFields = {
   BlogId: id,
-  CategoryId: id,
+  CategoryId: yup.string(),
 };
 const BlogPostCategoryFieldKeys = Object.keys(BlogPostCategoryFields);
 
@@ -100,7 +100,11 @@ app.post(
     ),
   ],
   async (req, res) => {
-    let blogpostcategory = await createBlogPostCategory(req.body);
+    let blogpostcategory = await createBlogPostCategory({
+      BlogId: req.body.BlogId,
+      CategoryId: req.body.CategoryId,
+      description: req.body.description,
+    });
     return res.json({
       code: 200,
       message: "success",
