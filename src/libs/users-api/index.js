@@ -13,11 +13,12 @@ const {
     createUser, 
     createUserUnrestricted, 
     findAll, 
-    findByPk
+    findByPk,
 } = require("./users-dal");
 const { ErrorHandler } = require("../../utils/error");
 const { addPermissionsToUser, findOrCreatePermission } = require("./permissions-dal");
 const { addRoleToUser, findOrCreateRole } = require("./roles-dal");
+const { createTeamMember } = require("../teammembers-api/teammebers-dal");
 
 app.use(allowCrossDomain)
 
@@ -78,30 +79,31 @@ app.patch("/users/:user_id", [
     })
 })
 
-async function addDefaultPermissionsToUser(userId, skipDefaultPermissions = false) {
+async function addDefaultPermissionsToUser(userId, skipDefaultPermissions = false, blogId = null, teamMemberId = null) {
     if (skipDefaultPermissions) return;
     
     const defaultPermissions = [
-        { resource: 'blogs', actions: ['create', 'read'] },
-        { resource: 'blog_categories', actions: ['create', 'read'] },
-        { resource: 'posts', actions: ['create', 'read'] }
+        { resource: 'blogs', actions: ['create', 'read'], blogId },
+        { resource: 'blog_categories', actions: ['create', 'read'], blogId },
+        { resource: 'posts', actions: ['create', 'read'], blogId },
+        { resource: 'team_members', actions: ['create', 'read', 'update', 'delete'], blogId }
     ];
 
     const permissionIds = await Promise.all(
-        defaultPermissions.flatMap(({ resource, actions }) =>
+        defaultPermissions.flatMap(({ resource, actions, blogId }) =>
             actions.map(async action => {
-                const permission = await findOrCreatePermission({ resource, action });
+                const permission = await findOrCreatePermission({ resource, action, blogId, teamMemberId });
                 return permission.id;
             })
         )
     );
 
-    await addPermissionsToUser(userId, permissionIds);
+    await addPermissionsToUser(userId, permissionIds, teamMemberId);
 }
 
-async function addDefaultRoleToUser(userId) {
-    const defaultRole = await findOrCreateRole('moderator');
-    await addRoleToUser(userId, defaultRole.id);
+async function addDefaultRoleToUser(userId, blogId = null, teamMemberId = null) {
+    const defaultRole = await findOrCreateRole('moderator', blogId, teamMemberId);
+    await addRoleToUser(userId, defaultRole.id, teamMemberId);
 }
 
 app.post("/users", [
@@ -114,19 +116,14 @@ app.post("/users", [
             throw new Error('User creation failed - no user returned from createUser');
         }
         console.log('Created user:', user);
-        
-        await Promise.all([
-            addDefaultPermissionsToUser(user.id),
-            addDefaultRoleToUser(user.id)
-        ]);
-        
+
         const token = createToken(user.id);
         if (!token) {
             throw new Error('Token generation failed');
         }
         
         const responseData = {
-            message: "success",
+            message: "success", 
             code: 201,
             data: {
                 user: {
@@ -173,9 +170,15 @@ app.post("/users/unrestricted", [
     validateRequest(post_users_unrestricted)
 ], async (req, res) => {
     let user = await createUserUnrestricted(req.body);
+    const teamMember = await createTeamMember({
+        userId: user.id,
+        blogId: req.body.blogId,
+        role: 'moderator'
+    });
+    
     await Promise.all([
-        addDefaultPermissionsToUser(user.id, req.body.skipDefaultPermissions),
-        addDefaultRoleToUser(user.id)
+        addDefaultPermissionsToUser(user.id, req.body.skipDefaultPermissions, req.body.blogId, teamMember.id),
+        addDefaultRoleToUser(user.id, req.body.blogId, teamMember.id)
     ]);
     
     return res.json({

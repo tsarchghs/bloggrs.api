@@ -1,11 +1,11 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const addPermissionsToUser = async (userId, permissionIds) => {
+const addPermissionsToUser = async (teammemberId, permissionIds) => {
     try {
-        // Create the user permissions with userId and permissionId
+        // Create the user permissions with teammemberId and permissionId
         const userPermissions = permissionIds.map(permissionId => ({
-            userId,
+            teammemberId,
             permissionId,
         }));
 
@@ -16,38 +16,44 @@ const addPermissionsToUser = async (userId, permissionIds) => {
 
         return true;
     } catch (error) {
-        console.error('Error adding permissions to user:', error);
-        throw error;
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2003') {
+                throw new ErrorHandler(400, 'Invalid teammemberId or permissionId provided');
+            }
+            if (error.code === 'P2002') {
+                throw new ErrorHandler(409, 'Permission already assigned to user');
+            }
+        }
+        throw new ErrorHandler(500, 'Database error while adding permissions');
     }
 };
 
-const findOrCreatePermission = async ({ resource, action }) => {
+async function findOrCreatePermission(name, resource, action) {
     try {
-        // Try to find existing permission
         let permission = await prisma.permissions.findFirst({
-            where: {
-                resource,
-                action,
-            }
+            where: { name }
         });
 
-        // If permission doesn't exist, create it
         if (!permission) {
             permission = await prisma.permissions.create({
                 data: {
-                    name: `${resource}_${action}`,
+                    name,
                     resource,
-                    action,
+                    action
                 }
             });
         }
 
         return permission;
     } catch (error) {
-        console.error('Error finding or creating permission:', error);
-        throw error;
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2002') {
+                throw new ErrorHandler(409, 'Permission with this name already exists');
+            }
+        }
+        throw new ErrorHandler(500, 'Database error while managing permission');
     }
-};
+}
 
 const createRole = async ({ name, permissions }) => {
     try {
@@ -63,8 +69,15 @@ const createRole = async ({ name, permissions }) => {
         });
         return role;
     } catch (error) {
-        console.error('Error creating role:', error);
-        throw error;
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2002') {
+                throw new ErrorHandler(409, 'Role with this name already exists');
+            }
+            if (error.code === 'P2003') {
+                throw new ErrorHandler(400, 'Invalid permission IDs provided');
+            }
+        }
+        throw new ErrorHandler(500, 'Database error while creating role');
     }
 };
 

@@ -83,7 +83,7 @@ model permissions {
   tenantId    Int? // For tenant-specific permissions
   tenant      tenants? @relation(fields: [tenantId], references: [id])
 
-  user_permissions user_permissions[]
+  teammemberspermissions teammemberspermissions[]
 
   @@unique([name, tenantId])
   @@unique([action, resource, roleId, tenantId])
@@ -110,40 +110,39 @@ model blogpermissions {
   action       String @db.VarChar(255) // e.g., 'read', 'write', 'delete'
   resourceId   Int // ID of the resource (blog, page, etc.)
   resourceType String @db.VarChar(255) // Type of resource (e.g., 'blog', 'page', 'post')
-  userId       Int
+  teammemberId Int    // Changed from userId
 
-  blog blogs @relation(fields: [resourceId], references: [id]) // Relation to blogs
-  user users @relation(fields: [userId], references: [id]) // Add this line
+  blog       blogs       @relation(fields: [resourceId], references: [id])
+  teammember teammembers @relation(fields: [teammemberId], references: [id]) // Changed relation
 
-  @@unique([userId, resourceId, resourceType, action]) // Unique permission per resource and action
+  @@unique([teammemberId, resourceId, resourceType, action])
 }
 
-model user_permissions {
+model teammemberspermissions {
   id           Int     @id @default(autoincrement())
-  userId       Int
+  teammemberId Int     
   permissionId Int
-  isCustom     Boolean @default(false) // Indicates if this permission was set by the user
+  isCustom     Boolean @default(false)
 
-  user       users       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teammember teammembers  @relation(fields: [teammemberId], references: [id], onDelete: Cascade)
   permission permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, permissionId]) // Ensure a user can't have the same permission twice
+  @@unique([teammemberId, permissionId])
 }
 
 model temporaryaccesses {
   id           Int      @id @default(autoincrement())
-  userId       Int
+  teammemberId Int      // Changed from userId
   resourceId   Int
-  resourceType String   @db.VarChar(255) // e.g., 'blog', 'page', etc.
-  grantedAt    DateTime @default(now()) // Time when access was granted
-  expiresAt    DateTime // Time when access expires
-  isActive     Boolean  @default(true) // Indicates if the access is still active
+  resourceType String   @db.VarChar(255)
+  grantedAt    DateTime @default(now())
+  expiresAt    DateTime
+  isActive     Boolean  @default(true)
 
-  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
-  blog blogs @relation(fields: [resourceId], references: [id], onDelete: Cascade) // If applicable
+  teammember teammembers @relation(fields: [teammemberId], references: [id], onDelete: Cascade)
+  blog       blogs      @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, resourceId, resourceType]) // Ensure a user can't have multiple accesses to the same resource
-  @@index([userId])
+  @@unique([teammemberId, resourceId, resourceType])
   @@index([resourceId])
 }
 
@@ -524,8 +523,14 @@ model teammembers {
   BlogId    Int
   blogs     blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction)
   users     users     @relation(fields: [UserId], references: [id], onDelete: NoAction)
-  isOwner   Boolean   @default(false) // Indicates if the user is the owner
+  isOwner   Boolean   @default(false)
 
+  // Add relations for permissions
+  blogpermissions    blogpermissions[]
+  teammemberspermissions   teammemberspermissions[]
+  temporaryaccesses temporaryaccesses[]
+
+  @@unique([UserId, BlogId]) // Add unique constraint
   @@index([BlogId])
   @@index([UserId])
 }
@@ -539,38 +544,33 @@ model users {
   isGuest                Boolean
   createdAt              DateTime?            @default(now())
   updatedAt              DateTime?            @default(now())
-  createdTenants         tenants[]            @relation("TenantCreatedBy") // Add this line
-  updatedTenants         tenants[]            @relation("TenantUpdatedBy") // Add this line
-  ownershipTransfersFrom ownershiptransfers[] @relation("FromUser") // Add this line
-  ownershipTransfersTo   ownershiptransfers[] @relation("ToUser") // Add this line
+  createdTenants         tenants[]            @relation("TenantCreatedBy")
+  updatedTenants         tenants[]            @relation("TenantUpdatedBy")
+  ownershipTransfersFrom ownershiptransfers[] @relation("FromUser")
+  ownershipTransfersTo   ownershiptransfers[] @relation("ToUser")
   webhooks               webhooks[]
   integrations           integrations[]
-
-  preferences userpreferences? @relation("UserPreferences")
+  preferences           userpreferences?      @relation("UserPreferences")
 
   createdBy Int?
   updatedBy Int?
 
-  blogs           blogs[]
-  pages           pages[]
-  postcomments    postcomments[]
-  postlikes       postlikes[]
-  posts           posts[]
-  referrals       referrals[]
-  teammembers     teammembers[]
-  sitesessions    sitesessions[]
-  blogpermissions blogpermissions[]
-  roles           roles[]           @relation("UserRoles")
+  blogs        blogs[]
+  pages        pages[]
+  postcomments postcomments[]
+  postlikes    postlikes[]
+  posts        posts[]
+  referrals    referrals[]
+  teammembers  teammembers[]
+  sitesessions sitesessions[]
+  roles        roles[]              @relation("UserRoles")
 
-  actionlogs        actionlogs[]
-  user_permissions  user_permissions[]
-  temporaryaccesses temporaryaccesses[]
-
-  instances instances[] // User can have multiple instances
+  actionlogs  actionlogs[]
+  instances   instances[]
 
   // Relation to tenants
   tenantId Int?
-  tenant   tenants? @relation(fields: [tenantId], references: [id]) // Ensure this line is defined only once
+  tenant   tenants? @relation(fields: [tenantId], references: [id])
 }
 
 model actionlogs {

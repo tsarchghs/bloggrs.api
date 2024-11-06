@@ -43,7 +43,7 @@ app.get("/roles/:role_id", [
         })
     }))
 ], async (req, res) => {
-    const role = await findByPkOr404(req.params.role_id);
+    const role = await findByPkOr404(Number(req.params.role_id));
     return res.json({
         code: 200,
         message: "success",
@@ -76,10 +76,7 @@ app.patch("/roles/:role_id", [
         })
     }))
 ], async (req, res) => {
-    let role = await updateRole({
-        pk: req.params.role_id,
-        data: req.body
-    });
+    let role = await updateRole(Number(req.params.role_id), req.body);
     return res.json({
         code: 200,
         message: "success",
@@ -96,7 +93,7 @@ app.delete("/roles/:role_id", [
         })
     }))
 ], async (req, res) => {
-    await deleteRole(req.params.role_id);
+    await deleteRole(Number(req.params.role_id));
     return res.json({
         code: 204,
         message: "success"

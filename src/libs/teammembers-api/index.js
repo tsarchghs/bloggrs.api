@@ -14,14 +14,8 @@ const { param_id, id } = require("../utils/validations");
 app.use(allowCrossDomain)
 
 const TeamMemberFields = {
-    contract_type: yup.string().oneOf([
-        "SIGN_CONTRACT", "FACEBOOK_CONTRACT", "YOUTUBE_CONTRACT", "DIGITAL_PLATFORM_CONTRACTS"
-    ]),
-    start_date: yup.date(),
-    end_date: yup.date(),
-    comment: yup.string(),
-    file_url: yup.string(),
-    ClientId: id
+    UserId: id,
+    BlogId: id
 }
 const TeamMemberFieldKeys = Object.keys(TeamMemberFields)
 
@@ -32,11 +26,12 @@ app.get("/teammembers", [
             page: yup.number().integer().positive().default(1),
             pageSize: yup.number().integer().positive().default(10),
             status: yup.string(),
-            query: yup.string()
+            query: yup.string(),
+            blog_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let teammembers = await findAll(req.query); 
+    let teammembers = await findAll({ ...req.query, blogId: req.query.blog_id }); 
     return res.json({
         message: "success",
         code: 200,
@@ -63,7 +58,7 @@ app.get("/teammembers/:teammember_id", [
 const CreateTeamMemberFields = {};
 TeamMemberFieldKeys.map(key => CreateTeamMemberFields[key] = TeamMemberFields[key].required());
 app.post("/teammembers",[
-    // jwtRequired, passUserFromJWT, adminRequired,
+    jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         requestBody: yup.object().shape(CreateTeamMemberFields)
     }))

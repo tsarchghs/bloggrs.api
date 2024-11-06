@@ -57,9 +57,15 @@ async function findAll() {
 
 // Update
 async function updateRole(id, updateData) {
+  const { permissions, ...rest } = updateData;
   return prisma.roles.update({
-    where: { id },
-    data: updateData,
+    where: { id: parseInt(id) },
+    data: {
+      ...rest,
+      permissions: permissions ? {
+        set: permissions
+      } : undefined
+    },
   });
 }
 

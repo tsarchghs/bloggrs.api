@@ -24,7 +24,7 @@ const checkPermission = (resource, action) => {
 
 async function checkUserPermission(userId, resource, action) {
     // Check direct user permissions
-    const userPermission = await prisma.user_permissions.findFirst({
+    const userPermission = await prisma.userPermissions.findFirst({
         where: {
             userId,
             permission: {
@@ -69,11 +69,6 @@ const addPermissionContext = async (req, res, next) => {
                         include: {
                             permissions: true
                         }
-                    },
-                    user_permissions: {
-                        include: {
-                            permission: true
-                        }
                     }
                 }
             });
@@ -82,14 +77,11 @@ const addPermissionContext = async (req, res, next) => {
             req.user.permissions = {
                 isAdmin: userWithPermissions.roles.some(role => role.name === 'admin'),
                 roles: userWithPermissions.roles.map(role => role.name),
-                actions: new Set([
-                    ...userWithPermissions.roles.flatMap(role => 
+                actions: new Set(
+                    userWithPermissions.roles.flatMap(role => 
                         role.permissions.map(p => `${p.resource}:${p.action}`)
-                    ),
-                    ...userWithPermissions.user_permissions.map(up => 
-                        `${up.permission.resource}:${up.permission.action}`
                     )
-                ])
+                )
             };
 
             // Add helper method to check permissions
