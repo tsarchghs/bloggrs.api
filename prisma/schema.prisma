@@ -41,13 +41,13 @@ model blogcontacts {
 }
 
 model blogpostcategories {
-  createdAt  DateTime?  @default(now())
-  updatedAt  DateTime?  @default(now())
-  description  String    @db.VarChar(255)
-  CategoryId Int
-  BlogId     Int
-  blogs      blogs      @relation(fields: [BlogId], references: [id], onDelete: Cascade)
-  categories categories @relation(fields: [CategoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime?  @default(now())
+  updatedAt   DateTime?  @default(now())
+  description String     @db.VarChar(255)
+  CategoryId  Int
+  BlogId      Int
+  blogs       blogs      @relation(fields: [BlogId], references: [id], onDelete: Cascade)
+  categories  categories @relation(fields: [CategoryId], references: [id], onDelete: Cascade)
 
   @@id([CategoryId, BlogId])
   @@index([BlogId])
@@ -110,21 +110,21 @@ model blogpermissions {
   action       String @db.VarChar(255) // e.g., 'read', 'write', 'delete'
   resourceId   Int // ID of the resource (blog, page, etc.)
   resourceType String @db.VarChar(255) // Type of resource (e.g., 'blog', 'page', 'post')
-  teammemberId Int    // Changed from userId
+  teammemberId Int // Changed from userId
 
   blog       blogs       @relation(fields: [resourceId], references: [id])
-  teammember teammembers @relation(fields: [teammemberId], references: [id]) // Changed relation
+  teammember teammembers @relation(fields: [teammemberId], references: [id], onDelete: Cascade)
 
   @@unique([teammemberId, resourceId, resourceType, action])
 }
 
 model teammemberspermissions {
   id           Int     @id @default(autoincrement())
-  teammemberId Int     
+  teammemberId Int
   permissionId Int
   isCustom     Boolean @default(false)
 
-  teammember teammembers  @relation(fields: [teammemberId], references: [id], onDelete: Cascade)
+  teammember teammembers @relation(fields: [teammemberId], references: [id], onDelete: Cascade)
   permission permissions @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@unique([teammemberId, permissionId])
@@ -132,7 +132,7 @@ model teammemberspermissions {
 
 model temporaryaccesses {
   id           Int      @id @default(autoincrement())
-  teammemberId Int      // Changed from userId
+  teammemberId Int // Changed from userId
   resourceId   Int
   resourceType String   @db.VarChar(255)
   grantedAt    DateTime @default(now())
@@ -140,7 +140,7 @@ model temporaryaccesses {
   isActive     Boolean  @default(true)
 
   teammember teammembers @relation(fields: [teammemberId], references: [id], onDelete: Cascade)
-  blog       blogs      @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  blog       blogs       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@unique([teammemberId, resourceId, resourceType])
   @@index([resourceId])
@@ -526,9 +526,9 @@ model teammembers {
   isOwner   Boolean   @default(false)
 
   // Add relations for permissions
-  blogpermissions    blogpermissions[]
-  teammemberspermissions   teammemberspermissions[]
-  temporaryaccesses temporaryaccesses[]
+  blogpermissions        blogpermissions[]
+  teammemberspermissions teammemberspermissions[]
+  temporaryaccesses      temporaryaccesses[]
 
   @@unique([UserId, BlogId]) // Add unique constraint
   @@index([BlogId])
@@ -550,7 +550,7 @@ model users {
   ownershipTransfersTo   ownershiptransfers[] @relation("ToUser")
   webhooks               webhooks[]
   integrations           integrations[]
-  preferences           userpreferences?      @relation("UserPreferences")
+  preferences            userpreferences?     @relation("UserPreferences")
 
   createdBy Int?
   updatedBy Int?
@@ -563,10 +563,10 @@ model users {
   referrals    referrals[]
   teammembers  teammembers[]
   sitesessions sitesessions[]
-  roles        roles[]              @relation("UserRoles")
+  roles        roles[]        @relation("UserRoles")
 
-  actionlogs  actionlogs[]
-  instances   instances[]
+  actionlogs actionlogs[]
+  instances  instances[]
 
   // Relation to tenants
   tenantId Int?
@@ -607,6 +607,191 @@ model pageviews {
   sitesessions  sitesessions @relation(fields: [SiteSessionId], references: [id], onDelete: NoAction)
 }
 
+// ... existing schema ...
+
+model jsfiles {
+  id          Int      @id @default(autoincrement())
+  filename    String   @db.VarChar(255)
+  content     String?  @db.Text
+  sourceCode  String?  @db.Text
+  fileType    String   @default("js") @db.VarChar(10)
+  isModule    Boolean  @default(true)
+  isGenerated Boolean  @default(false)
+  sourceMap   Json?
+  metadata    Json? // Add this field to store file metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Existing relations
+  codeblocks   jscodeblocks[]
+  imports      jsimports[]
+  exports      jsexports[]
+  dependencies jsdependencies[]
+
+  // Existing fields
+  structure   Json?
+  importOrder Json?
+  contextPath String? @db.VarChar(255)
+  hash        String? @db.VarChar(64)
+}
+
+model jscodeblocks {
+  id            Int      @id @default(autoincrement())
+  fileId        Int
+  blockType     String   @db.VarChar(50)
+  blockName     String?  @db.VarChar(255)
+  content       String   @db.Text
+  startLine     Int
+  endLine       Int
+  order         Int      @default(0)
+  isExported    Boolean  @default(false)
+  documentation String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  scope         String?  @db.VarChar(50)
+  dependencies  Json     @default("[]")
+  parentBlockId Int?
+  methodId      Int?     @unique // Add @unique here
+
+  file           jsfiles             @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  parentBlock    jscodeblocks?       @relation("BlockHierarchy", fields: [parentBlockId], references: [id])
+  childBlocks    jscodeblocks[]      @relation("BlockHierarchy")
+  method         jsclassmethods?     @relation("BlockMethod", fields: [methodId], references: [id], onDelete: SetNull)
+  parameters     jsfunctionparams[]
+  properties     jsclassproperties[]
+  methods        jsclassmethods[]    @relation("BlockMethods")
+  variables      jsvariables[]
+  comments       jscomments[]
+  jsclassmethods jsclassmethods[]
+
+  @@index([fileId])
+  @@index([parentBlockId])
+  @@index([methodId])
+}
+
+model jsclassproperties {
+  id            Int      @id @default(autoincrement())
+  codeBlockId   Int
+  propertyName  String   @db.VarChar(255)
+  propertyType  String?  @db.Text
+  isStatic      Boolean  @default(false)
+  visibility    String   @default("public") @db.VarChar(20)
+  initialValue  String?  @db.Text
+  documentation String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  codeBlock jscodeblocks @relation(fields: [codeBlockId], references: [id], onDelete: Cascade)
+
+  @@index([codeBlockId])
+}
+
+model jsclassmethods {
+  id              Int      @id @default(autoincrement())
+  codeBlockId     Int
+  methodName      String   @db.VarChar(255)
+  parameters      String?  @db.Text // Add field to store parameters as JSON
+  returnType      String?  @db.VarChar(50) // Add field for return type
+  isStatic        Boolean  @default(false)
+  isAsync         Boolean  @default(false)
+  isArrowFunction Boolean  @default(false)
+  content         String   @db.Text
+  documentation   String?  @db.Text
+  visibility      String   @default("public") @db.VarChar(20)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  codeBlock        jscodeblocks       @relation(fields: [codeBlockId], references: [id], onDelete: Cascade)
+  jsfunctionparams jsfunctionparams[]
+  blocks           jscodeblocks[]     @relation("BlockMethods")
+  methodBlock      jscodeblocks?      @relation("BlockMethod")
+
+  @@index([codeBlockId])
+}
+
+model jsfunctionparams {
+  id            Int      @id @default(autoincrement())
+  codeBlockId   Int
+  paramName     String   @db.VarChar(255)
+  paramType     String?  @db.VarChar(50)
+  defaultValue  String?  @db.Text
+  isOptional    Boolean  @default(false) // Add field for optional parameters
+  documentation String?  @db.Text // Add field for parameter documentation
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  methodId      Int // Add this field to link to jsclassmethods
+
+  codeBlock jscodeblocks   @relation(fields: [codeBlockId], references: [id], onDelete: Cascade)
+  method    jsclassmethods @relation(fields: [methodId], references: [id], onDelete: Cascade)
+
+  @@index([codeBlockId])
+  @@index([methodId])
+}
+
+model jsimports {
+  id           Int      @id @default(autoincrement())
+  fileId       Int
+  importSource String   @db.VarChar(255)
+  importType   String   @db.VarChar(50) // 'default', 'named', 'namespace', 'side-effect'
+  importedName String?  @db.VarChar(255)
+  alias        String?  @db.VarChar(255)
+  isTypeOnly   Boolean  @default(false)
+  isTypeScript Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  position     Json? // Changed from Int to Json to store location data
+  group        String?  @db.VarChar(50)
+
+  file jsfiles @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([fileId, importSource(length: 191)])
+}
+
+model jsexports {
+  id           Int      @id @default(autoincrement())
+  fileId       Int
+  exportType   String   @db.VarChar(50) // 'default', 'named'
+  exportedName String?  @db.VarChar(255)
+  alias        String?  @db.VarChar(255)
+  typeOnly     Boolean  @default(false) // Add field for type-only exports
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  file jsfiles @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+}
+
+model jscomments {
+  id          Int      @id @default(autoincrement())
+  codeBlockId Int
+  commentType String   @db.VarChar(20) // 'inline', 'block', 'jsdoc'
+  content     String   @db.Text
+  startLine   Int
+  endLine     Int
+  tags        Json? // Add field to store JSDoc tags as JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  codeBlock jscodeblocks @relation(fields: [codeBlockId], references: [id], onDelete: Cascade)
+
+  @@index([codeBlockId])
+}
+
+model jsdependencies {
+  id             Int      @id @default(autoincrement())
+  fileId         Int
+  dependencyName String   @db.VarChar(255)
+  version        String?  @db.VarChar(50)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  file jsfiles @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+}
+
 enum posts_status {
   ARCHIVED
   DRAFT
@@ -622,4 +807,21 @@ enum ModerationStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model jsvariables {
+  id            Int      @id @default(autoincrement())
+  codeBlockId   Int
+  variableName  String   @db.VarChar(255)
+  variableType  String?  @db.VarChar(50)
+  initialValue  String?  @db.Text
+  isConst       Boolean  @default(false)
+  isLet         Boolean  @default(false)
+  documentation String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  codeBlock jscodeblocks @relation(fields: [codeBlockId], references: [id], onDelete: Cascade)
+
+  @@index([codeBlockId])
 }

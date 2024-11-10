@@ -307,7 +307,7 @@ class Bloggrs {
                 let parts = location.hostname.split('.');
                 let subdomain = parts.shift();
                 if (subdomain === 'localhost')
-                    subdomain = 'blog-namedsadsa';
+                    subdomain = 'dsaads';
                 res = yield get(this.serverUrl + `/blogs/${subdomain}/api_key`);
             }
             else {

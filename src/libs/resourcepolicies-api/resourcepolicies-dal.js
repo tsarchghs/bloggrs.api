@@ -1,5 +1,6 @@
 const { PrismaClient, Prisma } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { ErrorHandler } = require('../../utils/error');
 
 function handlePrismaError(error) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
