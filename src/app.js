@@ -50,6 +50,7 @@ const blogpermissions_api = require("./libs/blogpermissions-api");
 const permissions_api = require("./libs/permissions-api");
 const teammemberspermissions_api = require("./libs/teammemberspermissions-api");
 const resourcepolicies_api = require("./libs/resourcepolicies-api");
+const console_api = require("./console-api");
 
 const app = express();
 const server = http.createServer(app);
@@ -93,6 +94,7 @@ app.use(PATHNAME_PREFIX, blogpermissions_api);
 app.use(PATHNAME_PREFIX, permissions_api);
 app.use(PATHNAME_PREFIX, teammemberspermissions_api);
 app.use(PATHNAME_PREFIX, resourcepolicies_api);
+app.use(PATHNAME_PREFIX, console_api);
 app.get("/", (req, res) => res.json({ versions: ["v1"] }));
 app.get("*", (req, res) =>
   res.status(404).json({

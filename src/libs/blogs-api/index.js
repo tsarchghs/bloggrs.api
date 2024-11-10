@@ -49,6 +49,7 @@ const pagesDal = require("../pages-api/pages-dal");
 const prisma = require("../../prisma");
 const { requireAuth } = require('../../middlewares/auth');
 const { addPermissionsToUser, findOrCreatePermission } = require("../users-api/permissions-dal");
+const { initializeInstance } = require("../../services/instance.service");
 
 app.use(allowCrossDomain);
 
@@ -645,10 +646,23 @@ app.post(
       },
     });
 
+    // Create an instance for the blog
+    const instance = await prisma.instances.create({
+      data: {
+        name: `blog-${blog.id}`,
+        status: 'pending',
+        BlogId: blog.id,
+        UserId: req.user.id
+      }
+    });
+
+    // Initialize the instance (you'll need to implement this)
+    await initializeInstance(instance.id);
+
     return res.json({
       code: 200,
       message: "success",
-      data: { blog },
+      data: { blog, instance }
     });
   }
 );

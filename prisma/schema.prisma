@@ -190,19 +190,18 @@ model blogs {
 }
 
 model instances {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(uuid())
   name      String   @db.VarChar(255)
-  status    String   @db.VarChar(50) // e.g., 'active', 'inactive'
+  status    String   @db.VarChar(50)
+  BlogId    Int?
+  UserId    Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  BlogId    Int? // Optional relation to the blog if instance relates to blogs
-  UserId    Int? // Optional relation to user
 
   // Relations
   blog blogs? @relation(fields: [BlogId], references: [id], onDelete: Cascade)
   user users? @relation(fields: [UserId], references: [id], onDelete: Cascade)
 
-  // Additional attributes or relations as needed
   @@index([BlogId])
   @@index([UserId])
 }
@@ -792,6 +791,16 @@ model jsdependencies {
   @@index([fileId])
 }
 
+model backups {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  instanceId  String
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum posts_status {
   ARCHIVED
   DRAFT
@@ -824,4 +833,14 @@ model jsvariables {
   codeBlock jscodeblocks @relation(fields: [codeBlockId], references: [id], onDelete: Cascade)
 
   @@index([codeBlockId])
+}
+
+model instancePaths {
+  id         String    @id @default(uuid())
+  instanceId String    @unique
+  path       String    @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([instanceId])
 }
