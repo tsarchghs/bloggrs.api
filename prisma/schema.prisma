@@ -570,6 +570,16 @@ model users {
   // Relation to tenants
   tenantId Int?
   tenant   tenants? @relation(fields: [tenantId], references: [id])
+
+  //bloggrs-v
+  fc_image_id         String?              @db.VarChar(255)
+  customer_id         String?              @db.VarChar(255)
+  authorizationcodes  authorizationcodes[]
+  identitydocuments   identitydocuments[]
+  useraddresses       useraddresses[]
+  bloggrs_v_instances bloggrs_v_instances? @relation(fields: [bloggrs_v_instancesId], references: [id])
+
+  bloggrs_v_instancesId String? @db.VarChar(255)
 }
 
 model actionlogs {
@@ -836,11 +846,249 @@ model jsvariables {
 }
 
 model instancePaths {
-  id         String    @id @default(uuid())
-  instanceId String    @unique
-  path       String    @db.Text
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id         String   @id @default(uuid())
+  instanceId String   @unique
+  path       String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([instanceId])
+}
+
+model apikeys {
+  id        String   @id @db.Char(36)
+  name      String   @db.VarChar(255)
+  createdAt DateTime @db.DateTime(0)
+  updatedAt DateTime @db.DateTime(0)
+  ProjectId String   @db.VarChar(255)
+  projects  projects @relation(fields: [ProjectId], references: [id], onDelete: NoAction, map: "apikeys_ibfk_1")
+
+  @@index([ProjectId], map: "ProjectId")
+}
+
+model applications {
+  id                         String             @id @db.VarChar(255)
+  name                       String             @db.VarChar(255)
+  application_logo_url       String?            @db.VarChar(255)
+  application_name           String             @db.VarChar(255)
+  homepage_url               String             @db.VarChar(255)
+  description                String             @db.Text
+  authorization_callback_url String             @db.VarChar(255)
+  charge_callback_url        String             @db.VarChar(255)
+  createdAt                  DateTime           @db.DateTime(0)
+  updatedAt                  DateTime           @db.DateTime(0)
+  ProjectId                  String             @db.VarChar(255)
+  projects                   projects           @relation(fields: [ProjectId], references: [id], onDelete: NoAction, map: "applications_ibfk_1")
+  paymentproviders           paymentproviders[]
+
+  @@index([ProjectId], map: "ProjectId")
+}
+
+model authorizationcodes {
+  id            String       @id @db.VarChar(255)
+  revokedAt     DateTime?    @db.DateTime(0)
+  used          Boolean      @default(false)
+  scope         String       @default("user::basic") @db.VarChar(255)
+  createdAt     DateTime     @db.DateTime(0)
+  updatedAt     DateTime     @db.DateTime(0)
+  OAuthClientId String       @db.VarChar(255)
+  UserId        Int
+  oauthclients  oauthclients @relation(fields: [OAuthClientId], references: [id], onDelete: NoAction, map: "authorizationcodes_ibfk_1")
+  users         users        @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "authorizationcodes_ibfk_2")
+
+  @@index([OAuthClientId], map: "OAuthClientId")
+  @@index([UserId], map: "UserId")
+}
+
+model authorizedjavascriptorigins {
+  id            String       @id @db.VarChar(255)
+  deletedAt     DateTime?    @db.DateTime(0)
+  value         String       @db.VarChar(255)
+  createdAt     DateTime     @db.DateTime(0)
+  updatedAt     DateTime     @db.DateTime(0)
+  OAuthClientId String       @db.VarChar(255)
+  oauthclients  oauthclients @relation(fields: [OAuthClientId], references: [id], onDelete: NoAction, map: "authorizedjavascriptorigins_ibfk_1")
+
+  @@index([OAuthClientId], map: "OAuthClientId")
+}
+
+model authorizedredirecturis {
+  id            String       @id @db.VarChar(255)
+  deletedAt     DateTime?    @db.DateTime(0)
+  value         String       @db.VarChar(255)
+  createdAt     DateTime     @db.DateTime(0)
+  updatedAt     DateTime     @db.DateTime(0)
+  OAuthClientId String       @db.VarChar(255)
+  oauthclients  oauthclients @relation(fields: [OAuthClientId], references: [id], onDelete: NoAction, map: "authorizedredirecturis_ibfk_1")
+
+  @@index([OAuthClientId], map: "OAuthClientId")
+}
+
+model charges {
+  id                String   @id @db.VarChar(255)
+  app_id            String   @db.VarChar(255)
+  v_user_id         Int
+  v_user_address_id String?  @db.VarChar(255)
+  customer_id       String   @db.VarChar(255)
+  amount            BigInt
+  stripe_charge_id  String   @db.VarChar(255)
+  createdAt         DateTime @db.DateTime(0)
+  updatedAt         DateTime @db.DateTime(0)
+}
+
+model comprefacesettings {
+  id               String   @db.VarChar(255)
+  recognition_key  String   @db.VarChar(150)
+  verification_key String   @db.VarChar(150)
+  detection_key    String   @db.VarChar(150)
+  createdAt        DateTime @db.DateTime(0)
+  updatedAt        DateTime @db.DateTime(0)
+
+  @@id([id, recognition_key, verification_key, detection_key])
+}
+
+model identitydocuments {
+  id                    String   @id @db.VarChar(255)
+  documentNumber        String?  @db.VarChar(255)
+  firstName             String?  @db.VarChar(255)
+  lastName              String?  @db.VarChar(255)
+  fullName              String?  @db.VarChar(255)
+  sex                   String?  @db.VarChar(255)
+  age                   String?  @db.VarChar(255)
+  dob                   String?  @db.VarChar(255)
+  dob_day               String?  @db.VarChar(255)
+  dob_month             String?  @db.VarChar(255)
+  dob_year              String?  @db.VarChar(255)
+  expiry                String?  @db.VarChar(255)
+  expiry_day            String?  @db.VarChar(255)
+  expiry_month          String?  @db.VarChar(255)
+  expiry_year           String?  @db.VarChar(255)
+  daysToExpiry          String?  @db.VarChar(255)
+  placeOfBirth          String?  @db.VarChar(255)
+  optionalData          String?  @db.VarChar(255)
+  documentType          String?  @db.VarChar(255)
+  documentSide          String?  @db.VarChar(255)
+  issuerOrg_region_full String?  @db.VarChar(255)
+  issuerOrg_region_abbr String?  @db.VarChar(255)
+  issuerOrg_full        String?  @db.VarChar(255)
+  issuerOrg_iso2        String?  @db.VarChar(255)
+  issuerOrg_iso3        String?  @db.VarChar(255)
+  nationality_full      String?  @db.VarChar(255)
+  nationality_iso2      String?  @db.VarChar(255)
+  nationality_iso3      String?  @db.VarChar(255)
+  internalId            String?  @db.VarChar(255)
+  createdAt             DateTime @db.DateTime(0)
+  updatedAt             DateTime @db.DateTime(0)
+  UserId                Int?
+  users                 users?   @relation(fields: [UserId], references: [id], map: "identitydocuments_ibfk_1")
+
+  @@index([UserId], map: "UserId")
+}
+
+model bloggrs_v_instances {
+  id                  String   @id @db.VarChar(255)
+  secret              String   @db.VarChar(255)
+  createdAt           DateTime @db.DateTime(0)
+  updatedAt           DateTime @db.DateTime(0)
+  ComprefaceSettingId String   @db.VarChar(255)
+  users               users[]
+}
+
+model instanceusers {
+  id         String     @id @db.VarChar(255)
+  email      String     @unique(map: "email") @db.VarChar(255)
+  password   String     @db.VarChar(255)
+  first_name String     @db.VarChar(255)
+  last_name  String     @db.VarChar(255)
+  isAdmin    Boolean    @default(false)
+  createdAt  DateTime   @db.DateTime(0)
+  updatedAt  DateTime   @db.DateTime(0)
+  projects   projects[]
+}
+
+model metadata {
+  id               String             @id @db.Char(36)
+  key              String             @db.VarChar(255)
+  value            String             @db.VarChar(255)
+  createdAt        DateTime           @db.DateTime(0)
+  updatedAt        DateTime           @db.DateTime(0)
+  paymentproviders paymentproviders[]
+}
+
+model oauthclients {
+  id                          String                        @id @db.VarChar(255)
+  type                        oauthclients_type
+  name                        String                        @db.VarChar(255)
+  deletedAt                   DateTime?                     @db.DateTime(0)
+  createdAt                   DateTime                      @db.DateTime(0)
+  updatedAt                   DateTime                      @db.DateTime(0)
+  project_id                  String?                       @db.VarChar(255)
+  authorizationcodes          authorizationcodes[]
+  authorizedjavascriptorigins authorizedjavascriptorigins[]
+  authorizedredirecturis      authorizedredirecturis[]
+  projects                    projects?                     @relation(fields: [project_id], references: [id], map: "oauthclients_ibfk_1")
+  oauthclientsecrets          oauthclientsecrets[]
+
+  @@index([project_id], map: "project_id")
+}
+
+model oauthclientsecrets {
+  id            String        @id @db.VarChar(255)
+  deletedAt     DateTime?     @db.DateTime(0)
+  createdAt     DateTime      @db.DateTime(0)
+  updatedAt     DateTime      @db.DateTime(0)
+  OAuthClientId String?       @db.VarChar(255)
+  oauthclients  oauthclients? @relation(fields: [OAuthClientId], references: [id], map: "oauthclientsecrets_ibfk_1")
+
+  @@index([OAuthClientId], map: "OAuthClientId")
+}
+
+model paymentproviders {
+  id            String       @id @db.Char(36)
+  type          String       @db.VarChar(255)
+  createdAt     DateTime     @db.DateTime(0)
+  updatedAt     DateTime     @db.DateTime(0)
+  ApplicationId String       @db.VarChar(255)
+  MetadatumId   String       @db.Char(36)
+  applications  applications @relation(fields: [ApplicationId], references: [id], onDelete: NoAction, map: "paymentproviders_ibfk_1")
+  metadata      metadata     @relation(fields: [MetadatumId], references: [id], onDelete: NoAction, map: "paymentproviders_ibfk_2")
+
+  @@index([ApplicationId], map: "ApplicationId")
+  @@index([MetadatumId], map: "MetadatumId")
+}
+
+model projects {
+  id              String         @id @db.VarChar(255)
+  name            String         @db.VarChar(255)
+  createdAt       DateTime       @db.DateTime(0)
+  updatedAt       DateTime       @db.DateTime(0)
+  instanceuser_id String?        @db.VarChar(255)
+  apikeys         apikeys[]
+  applications    applications[]
+  oauthclients    oauthclients[]
+  instanceusers   instanceusers? @relation(fields: [instanceuser_id], references: [id], map: "projects_ibfk_1")
+
+  @@index([instanceuser_id], map: "instanceuser_id")
+}
+
+model useraddresses {
+  id          String   @id @db.VarChar(255)
+  street      String   @db.VarChar(255)
+  city        String   @db.VarChar(255)
+  zipCode     String   @db.VarChar(255)
+  addressType String   @default("private") @db.VarChar(255)
+  companyName String?  @db.VarChar(255)
+  country     String   @db.VarChar(255)
+  phoneNumber String   @db.VarChar(255)
+  UserId      Int
+  instance_id String   @db.VarChar(255)
+  createdAt   DateTime @db.DateTime(0)
+  updatedAt   DateTime @db.DateTime(0)
+  users       users    @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "useraddresses_ibfk_1")
+
+  @@index([UserId], map: "UserId")
+}
+
+enum oauthclients_type {
+  WebApplication
 }

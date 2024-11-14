@@ -19,7 +19,6 @@ const uploadMiddleware = upload.fields([
 ])
 
 app.post("/files/upload", [
-    checkPermission('files', 'create'),
     uploadMiddleware
 ], (req, res) => {
     let image;

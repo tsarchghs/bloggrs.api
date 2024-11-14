@@ -39,6 +39,10 @@ const permissionMap = {
 const checkPermission = (resource, action) => {
   return async (req, res, next) => {
     try {
+      // Add debug logging
+      console.log('Request user:', req.user);
+      console.log('Request headers:', req.headers);
+      
       // If resource contains colon, split it
       if (resource.includes(':')) {
         [resource, action] = resource.split(':');
@@ -47,8 +51,12 @@ const checkPermission = (resource, action) => {
       console.log('Resource:', resource);
       console.log('Action:', action);
       
-      if (!req.user || !req.user.id) {
-        throw new ErrorHandler(401, 'Authentication required');
+      if (!req.user) {
+        throw new ErrorHandler(401, 'No user found in request. Make sure authentication middleware is applied first.');
+      }
+      
+      if (!req.user.id) {
+        throw new ErrorHandler(401, 'User ID is missing from authenticated user');
       }
 
       // Fetch user with roles and team members from Prisma
@@ -102,6 +110,21 @@ const checkPermission = (resource, action) => {
       
       next();
     } catch (error) {
+      // Add more detailed error logging
+      console.error('Permission check failed:', {
+        error: error.message,
+        stack: error.stack,
+        code: error.code,
+        resource,
+        action,
+        userId: req?.user?.id
+      });
+      
+      // Check if error is already an ErrorHandler instance
+      if (error instanceof ErrorHandler) {
+        throw error;  // Pass through our custom errors directly
+      }
+      
       // Handle Prisma-specific errors
       if (error.code) {
         switch (error.code) {
@@ -122,12 +145,14 @@ const checkPermission = (resource, action) => {
           case 'P2024':
             throw new ErrorHandler(503, 'Database connection timeout');
           default:
+            console.log('Database error:', error);
             throw new ErrorHandler(500, `Database error: ${error.message}`);
         }
       }
       
-      // Re-throw non-Prisma errors
-      throw error;
+      // Handle unexpected errors
+      console.error('Unexpected error:', error);
+      throw new ErrorHandler(500, 'Internal server error');
     }
   };
 };
